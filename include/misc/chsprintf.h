@@ -39,7 +39,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void chsprintf(char *, const char *, ...);
+  uint8_t chsprintf(char *, const char *, ...);
 #ifdef __cplusplus
 }
 #endif

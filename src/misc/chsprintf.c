@@ -109,7 +109,8 @@ static char *ftoa(char *p, double num) {
  * @param[in] chp       pointer to a @p BaseSequentialStream implementing object
  * @param[in] fmt       formatting string
  */
-void chsprintf(char *str, const char *fmt, ...) {
+uint8_t chsprintf(char *str, const char *fmt, ...) {
+    char *start = str;
   va_list ap;
   char *p, *s, c, filler;
   int i, precision, width;
@@ -127,7 +128,7 @@ void chsprintf(char *str, const char *fmt, ...) {
     c = *fmt++;
     if (c == 0) {
       va_end(ap);
-      return;
+      break;
     }
     if (c != '%') {
       *str++ = (uint8_t)c;
@@ -260,6 +261,7 @@ unsigned_common:
       width--;
     }
   }
+    return str - start;
 }
 
 /** @} */
