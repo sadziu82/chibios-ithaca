@@ -7,6 +7,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "math.h"
 #include "string.h"
 #include "chsprintf.h"
 #include "console.hpp"
@@ -26,8 +27,33 @@
 
 typedef uint8_t radio_state_t;
 typedef uint8_t radio_register_address_t;
+typedef uint8_t radio_register_bits_t;
 typedef uint8_t radio_command_t;
 typedef uint8_t rfm22b_device_type_t;
+typedef uint8_t rfm22b_sync_words_t;
+typedef uint8_t rfm22b_check_header_t;
+typedef uint8_t radio_node_address_t;
+typedef uint8_t rfm22b_register_bits_t;
+typedef struct {
+    uint8_t IfFilterBandwidth;
+    uint8_t ClockRecoveryGearshiftOverride;
+    uint8_t ClockRecoveryOversamplingRate;
+    uint8_t ClockRecoveryOffset2;
+    uint8_t ClockRecoveryOffset1;
+    uint8_t ClockRecoveryOffset0;
+    uint8_t ClockRecoveryTimingLoopGain1;
+    uint8_t ClockRecoveryTimingLoopGain0;
+    uint8_t OokCounterValue1;
+    uint8_t OokCounterValue2;
+    uint8_t SlicerPeakHold;
+    uint8_t ChargePumpCurrentTrimming;
+    uint8_t AgcOverride1;
+    uint8_t TxDataRate1;
+    uint8_t TxDataRate0;
+    uint8_t ModulationControl1;
+    uint8_t ModulationControl2;
+    uint8_t FrequencyDeviation;
+} rfm22b_modem_config_t;
 
 /*
  * @brief   Base display class
@@ -53,6 +79,11 @@ public:
         static const radio_state_t Present = 1;
         static const radio_state_t Ready = 2;
     };
+    class NodeAddress {
+    public:
+        static const radio_node_address_t Default = 0;
+        static const radio_node_address_t Broadcast = 0;
+    };
 protected:
     radio_state_t _state;
 };
@@ -70,7 +101,7 @@ protected:
     bool spiStop(void);
     void spiWrite(uint8_t reg, uint8_t tx_data);
     uint8_t spiRead(uint8_t reg);
-    void spiBurstWrite(uint8_t reg, uint8_t *data, uint8_t len);
+    void spiBurstWrite(uint8_t reg, const uint8_t *data, uint8_t len);
     uint8_t spiBurstRead(uint8_t reg, uint8_t *data, uint8_t len);
 private:
     SPIDriver *_spi_drv;
@@ -94,6 +125,8 @@ public:
     bool setIdleMode(void);
     bool setRxMode(void);
     bool setTxMode(void);
+    bool setFrequency(float centre, float afcPullInRange);
+    bool setModemConfig(rfm22b_modem_config_t *config);
     class Register {
     public:
         static const radio_register_address_t DeviceType = 0x00;
@@ -225,6 +258,27 @@ public:
     public:
         static const rfm22b_device_type_t Tx = 0x07;
         static const rfm22b_device_type_t RxTx = 0x08;
+    };
+    class SyncWords {
+    public:
+        static const rfm22b_sync_words_t Default[];
+    };
+    class CheckHeader {
+    public:
+        static const rfm22b_check_header_t Default = 0x00;
+    };
+    class DeviceStatus {
+    public:
+        static const rfm22b_register_bits_t FifoOverflow = 0x80;
+        static const rfm22b_register_bits_t FifoUnderflow = 0x40;
+        static const rfm22b_register_bits_t RxFifoEmpty = 0x20;
+        static const rfm22b_register_bits_t HeaderError = 0x10;
+        static const rfm22b_register_bits_t FrequencyError = 0x08;
+        static const rfm22b_register_bits_t LockDetect = 0x04;
+        static const rfm22b_register_bits_t Cps = 0x03;
+        static const rfm22b_register_bits_t CpsIdle = 0x00;
+        static const rfm22b_register_bits_t CpsRx = 0x01;
+        static const rfm22b_register_bits_t CpsTx = 0x10;
     };
 protected:
     void assert_sdn( void );
