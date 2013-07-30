@@ -39,13 +39,16 @@ RadioSpi::RadioSpi(void) {
  * @brief   radio ...
  */
 bool RadioSpi::spiInit(SPIDriver *spi_drv,
+                        ioportid_t miso_port, uint16_t miso_pin,
+                        ioportid_t mosi_port, uint16_t mosi_pin,
+                        ioportid_t scl_port, uint16_t scl_pin,
                         ioportid_t cs_port, uint16_t cs_pin) {
     // driver
     this->_spi_drv = spi_drv;
     // TODO: spi pins
-    palSetPadMode(GPIOA, 7, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
-    palSetPadMode(GPIOA, 6, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
-    palSetPadMode(GPIOA, 5, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
+    palSetPadMode(miso_port, miso_pin, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
+    palSetPadMode(mosi_port, mosi_pin, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
+    palSetPadMode(scl_port, scl_pin, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
     // 
     palSetPadMode(cs_port, cs_pin, PAL_MODE_OUTPUT_PUSHPULL);
     // 
@@ -134,7 +137,34 @@ const rfm22b_sync_words_t Rfm22B::SyncWords::Default[] = { 0x2D, 0xD4 };
 /*
  * @brief   rfm22b ...
  */
+const rfm22b_modem_config_t Rfm22B::ModemConfig::Default = {
+    .IfFilterBandwidth = 0x1B,
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0x41,
+    .ClockRecoveryOffset2 = 0x60,
+    .ClockRecoveryOffset1 = 0x27,
+    .ClockRecoveryOffset0 = 0x52,
+    .ClockRecoveryTimingLoopGain1 = 0x00,
+    .ClockRecoveryTimingLoopGain0 = 0x07,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0A,
+    .SlicerPeakHold = 0x1E,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x13,
+    .TxDataRate0 = 0xA9,
+    .ModulationControl1 = 0x2C,
+    .ModulationControl2 = 0x22,
+    .FrequencyDeviation = 0x3A
+};
+
+/*
+ * @brief   rfm22b ...
+ */
 bool Rfm22B::init(SPIDriver *spi_drv,
+                  ioportid_t miso_port, uint16_t miso_pin,
+                  ioportid_t mosi_port, uint16_t mosi_pin,
+                  ioportid_t scl_port, uint16_t scl_pin,
                   ioportid_t cs_port, uint16_t cs_pin,
                   ioportid_t nirq_port, uint16_t nirq_pin,
                   ioportid_t sdn_port, uint16_t sdn_pin,
@@ -142,7 +172,8 @@ bool Rfm22B::init(SPIDriver *spi_drv,
     //
     systime_t timeout = 0;
     //
-    this->spiInit(spi_drv, cs_port, cs_pin);
+    this->spiInit(spi_drv, miso_port, miso_pin, mosi_port, mosi_pin,
+                  scl_port, scl_pin, cs_port, cs_pin);
     this->ioInit(nirq_port, nirq_pin, sdn_port, sdn_pin);
     this->spiStart();
     //
@@ -204,9 +235,17 @@ bool Rfm22B::configure(systime_t tmout) {
     //
     this->spiWrite(Rfm22B::Register::TxFifoControl2, RF22_TXFFAEM_THRESHOLD);
     this->spiWrite(Rfm22B::Register::RxFifoControl,  RF22_RXFFAFULL_THRESHOLD);
-    this->spiWrite(Rfm22B::Register::DataAccessControl, RF22_ENPACRX | RF22_ENPACTX | RF22_ENCRC | RF22_CRC_CRC_16_IBM);
-    this->spiWrite(Rfm22B::Register::HeaderControl1, RF22_BCEN_HEADER3 | RF22_HDCH_HEADER3);
-    this->spiWrite(Rfm22B::Register::HeaderControl2, RF22_HDLEN_4 | RF22_SYNCLEN_2);
+    this->spiWrite(Rfm22B::Register::DataAccessControl,
+                   Rfm22B::DataAccessControl::ENPACRX |
+                   Rfm22B::DataAccessControl::ENPACTX |
+                   Rfm22B::DataAccessControl::Crc |
+                   Rfm22B::DataAccessControl::Crc16Ibm);
+    this->spiWrite(Rfm22B::Register::HeaderControl1,
+                   Rfm22B::HeaderControl1::BCEN_HEADER3 |
+                   Rfm22B::HeaderControl1::HDCH_HEADER3);
+    this->spiWrite(Rfm22B::Register::HeaderControl2,
+                   Rfm22B::HeaderControl2::HDLEN_4 |
+                   Rfm22B::HeaderControl2::SYNCLEN_2);
     this->spiWrite(Rfm22B::Register::PreambleLength, 8); // TODO 
     // TODO
     this->spiBurstWrite(Rfm22B::Register::SyncWord3,
@@ -215,24 +254,30 @@ bool Rfm22B::configure(systime_t tmout) {
     this->spiWrite(Rfm22B::Register::HeaderEnable3, 0x00); // TODO
     this->spiWrite(Rfm22B::Register::CheckHeader3, Radio::NodeAddress::Default);
     // transmit headers
-    spiWrite(Rfm22B::Register::TransmitHeader3, Radio::NodeAddress::Default);
-    spiWrite(Rfm22B::Register::TransmitHeader2, Radio::NodeAddress::Default);
-    spiWrite(Rfm22B::Register::TransmitHeader1, 0xAA); // TODO
-    spiWrite(Rfm22B::Register::TransmitHeader0, 0x55); // TODO
+    this->spiWrite(Rfm22B::Register::TransmitHeader3, Radio::NodeAddress::Default);
+    this->spiWrite(Rfm22B::Register::TransmitHeader2, Radio::NodeAddress::Default);
+    this->spiWrite(Rfm22B::Register::TransmitHeader1, 0xAA); // TODO
+    this->spiWrite(Rfm22B::Register::TransmitHeader0, 0x55); // TODO
     // gpio0 -> tx state, gpio1 -> rx state
-    spiWrite(Rfm22B::Register::GpioConfiguration0, 0x12 ); // TODO
-    spiWrite(Rfm22B::Register::GpioConfiguration1, 0x15 ); // TODO
+    this->spiWrite(Rfm22B::Register::GpioConfiguration0, 0x12 ); // TODO
+    this->spiWrite(Rfm22B::Register::GpioConfiguration1, 0x15 ); // TODO
     // TODO interrupts
-    this->spiWrite(Rfm22B::Register::InterruptEnable1, RF22_ENTXFFAEM | RF22_ENRXFFAFULL | RF22_ENPKSENT | RF22_ENPKVALID | RF22_ENCRCERROR | RF22_ENFFERR);
-    this->spiWrite(Rfm22B::Register::InterruptEnable2, RF22_ENPREAVAL);
+    this->spiWrite(Rfm22B::Register::InterruptEnable1,
+                   Rfm22B::InterruptEnable1::FifoError |
+                   Rfm22B::InterruptEnable1::TxFifoAlmostEmpty |
+                   Rfm22B::InterruptEnable1::RxFifoAlmostFull |
+                   Rfm22B::InterruptEnable1::PacketSent |
+                   Rfm22B::InterruptEnable1::PacketValid |
+                   Rfm22B::InterruptEnable1::CrcError);
+    this->spiWrite(Rfm22B::Register::InterruptEnable2,
+                   Rfm22B::InterruptEnable2::PreambleValid);
     // set frequency
-    setFrequency(434.0, 0.05);
+    this->setFrequency(434.0, 0.05);
     // TODO
-    rfm22b_modem_config_t config = { 0x1B, 0x03, 0x41, 0x60, 0x27, 0x52, 0x00, 0x07, 0x40, 0x0A, 0x1E, 0x80, 0x60, 0x13, 0xA9, 0x2C, 0x22, 0x3A };
-    setModemConfig(&config);
+    this->setModemConfig(&Rfm22B::ModemConfig::Default);
     // Minimum power
     //setTxPower(RF22_TXPOW_8DBM);
-    this->spiWrite(Rfm22B::Register::TxPower, RF22_TXPOW_8DBM); // TODO
+    this->spiWrite(Rfm22B::Register::TxPower, Rfm22B::TxPower::TXPOW_8DBM); // TODO
     //
     return true;
 }
@@ -241,7 +286,7 @@ bool Rfm22B::configure(systime_t tmout) {
  * @brief   rfm22b ...
  */
 bool Rfm22B::setFrequency(float centre, float afcPullInRange) {
-    uint8_t fbsel = RF22_SBSEL;
+    uint8_t fbsel = Rfm22B::FrequencyBandSelect::SBSEL;
     uint8_t afclimiter;
     if (centre < 240.0 || centre > 960.0) // 930.0 for early silicon
     return false;
@@ -250,7 +295,7 @@ bool Rfm22B::setFrequency(float centre, float afcPullInRange) {
     if (afcPullInRange < 0.0 || afcPullInRange > 0.318750)
         return false;
     centre /= 2;
-    fbsel |= RF22_HBSEL;
+    fbsel |= Rfm22B::FrequencyBandSelect::HBSEL;
     afclimiter = afcPullInRange * 1000000.0 / 1250.0;
     }
     else
@@ -279,7 +324,7 @@ bool Rfm22B::setFrequency(float centre, float afcPullInRange) {
 /*
  * @brief   rfm22b ...
  */
-bool Rfm22B::setModemConfig(rfm22b_modem_config_t *config) {
+bool Rfm22B::setModemConfig(const rfm22b_modem_config_t *config) {
     this->spiWrite(Rfm22B::Register::IfFilterBandwidth, config->IfFilterBandwidth);
     this->spiWrite(Rfm22B::Register::ClockRecoveryGearshiftOverride, config->ClockRecoveryGearshiftOverride);
     this->spiBurstWrite(Rfm22B::Register::ClockRecoveryOversamplingRate, &config->ClockRecoveryOversamplingRate, 6);
@@ -346,6 +391,66 @@ void Rfm22B::assert_sdn(void) {
  */
 void Rfm22B::release_sdn(void) {
     palClearPad(this->_sdn_port, this->_sdn_pin);
+}
+
+/*
+ * @brief   rfm22b ...
+ */
+void Rfm22B::resetTxFifio(void) {
+    spiWrite(Rfm22B::Register::OperatingMode2, Rfm22B::OperatingMode2::FifoClearTx);
+    spiWrite(Rfm22B::Register::OperatingMode2, 0);
+}
+
+/*
+ * @brief   rfm22b ...
+ */
+void Rfm22B::resetRxFifio(void) {
+    spiWrite(Rfm22B::Register::OperatingMode2, Rfm22B::OperatingMode2::FifoClearRx);
+    spiWrite(Rfm22B::Register::OperatingMode2, 0);
+}
+
+/*
+ * @brief   rfm22b ...
+ */
+bool Rfm22B::send(void) {
+    uint8_t packet[0x20] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+                            0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
+    console.write("rfm22b sending packet\r\n");
+    this->resetTxFifio();
+    spiBurstWrite(Rfm22B::Register::FifoAccess, packet, sizeof(packet));
+    spiWrite(Rfm22B::Register::PacketLength, 0x20);
+    spiWrite(Rfm22B::Register::OperatingMode1,
+             Rfm22B::OperatingMode1::XtalOn |
+             Rfm22B::OperatingMode1::TxOn);
+    while ((this->spiRead(Rfm22B::Register::InterruptStatus1) & Rfm22B::InterruptStatus1::PacketSent) == 0) {
+        console.write("rfm22b wait for PacketSent\r\n");
+        chThdSleepMilliseconds(5);
+    }
+    console.write("rfm22b sent\r\n");
+    return true;
+}
+
+/*
+ * @brief   rfm22b ...
+ */
+bool Rfm22B::recv(void) {
+    uint16_t tmout = 0;
+    console.write("rfm22b receiving packet\r\n");
+    this->resetRxFifio();
+    spiWrite(Rfm22B::Register::OperatingMode1,
+             Rfm22B::OperatingMode1::XtalOn |
+             Rfm22B::OperatingMode1::RxOn);
+    tmout = 0;
+    while ((this->spiRead(Rfm22B::Register::InterruptStatus1) & Rfm22B::InterruptStatus1::PacketValid) == 0) {
+        if ( tmout++ > 100 ) {
+            console.write("rfm22b recv timeout\r\n");
+            return false;
+        }
+        console.write("rfm22b wait for PacketValid\r\n");
+        chThdSleepMilliseconds(50);
+    }
+    console.write("rfm22b received\r\n");
+    return true;
 }
 
 //////////// // REVISIT: top bit is in Header Control 2 0x33

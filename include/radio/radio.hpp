@@ -4,7 +4,6 @@
 /*
  * @brief   Radio library
  */
-
 #include "ch.h"
 #include "hal.h"
 #include "math.h"
@@ -12,19 +11,9 @@
 #include "chsprintf.h"
 #include "console.hpp"
 
-
 /*
  * @brief   Radio states ...
  */
-//typedef enum {
-//    RadioStateUninit = 0,
-//    RadioStatePresent,
-//    RadioStateReady,
-//    RadioStateIdle,
-//    RadioStateRx,
-//    RadioStateTx,
-//} radio_state_t;
-
 typedef uint8_t radio_state_t;
 typedef uint8_t radio_register_address_t;
 typedef uint8_t radio_register_bits_t;
@@ -96,7 +85,10 @@ public:
     RadioSpi(void);
 protected:
     bool spiInit(SPIDriver *spi_drv,
-                  ioportid_t cs_port, uint16_t cs_pin);
+                 ioportid_t miso_port, uint16_t miso_pin,
+                 ioportid_t mosi_port, uint16_t mosi_pin,
+                 ioportid_t scl_port, uint16_t scl_pin,
+                 ioportid_t cs_port, uint16_t cs_pin);
     bool spiStart(void);
     bool spiStop(void);
     void spiWrite(uint8_t reg, uint8_t tx_data);
@@ -115,6 +107,9 @@ private:
 class Rfm22B: public RadioSpi {
 public:
     bool init(SPIDriver *spi_drv,
+              ioportid_t miso_port, uint16_t miso_pin,
+              ioportid_t mosi_port, uint16_t mosi_pin,
+              ioportid_t scl_port, uint16_t scl_pin,
               ioportid_t cs_port, uint16_t cs_pin,
               ioportid_t nirq_port, uint16_t nirq_pin,
               ioportid_t sdn_port, uint16_t sdn_pin,
@@ -126,7 +121,11 @@ public:
     bool setRxMode(void);
     bool setTxMode(void);
     bool setFrequency(float centre, float afcPullInRange);
-    bool setModemConfig(rfm22b_modem_config_t *config);
+    bool setModemConfig(const rfm22b_modem_config_t *config);
+    void resetTxFifio(void);
+    void resetRxFifio(void);
+    bool send(void);
+    bool recv(void);
     class Register {
     public:
         static const radio_register_address_t DeviceType = 0x00;
@@ -263,6 +262,10 @@ public:
     public:
         static const rfm22b_sync_words_t Default[];
     };
+    class ModemConfig {
+    public:
+        static const rfm22b_modem_config_t Default;
+    };
     class CheckHeader {
     public:
         static const rfm22b_check_header_t Default = 0x00;
@@ -279,6 +282,209 @@ public:
         static const rfm22b_register_bits_t CpsIdle = 0x00;
         static const rfm22b_register_bits_t CpsRx = 0x01;
         static const rfm22b_register_bits_t CpsTx = 0x10;
+    };
+    class InterruptStatus1 {
+    public:
+        static const rfm22b_register_bits_t FifoError = 0x80;
+        static const rfm22b_register_bits_t TxFifoAlmostFull = 0x40;
+        static const rfm22b_register_bits_t TxFifoAlmostEmpty = 0x20;
+        static const rfm22b_register_bits_t RxFifoAlmostFull = 0x10;
+        static const rfm22b_register_bits_t External = 0x08;
+        static const rfm22b_register_bits_t PacketSent = 0x04;
+        static const rfm22b_register_bits_t PacketValid = 0x02;
+        static const rfm22b_register_bits_t CrcError = 0x01;
+    };
+    class InterruptStatus2 {
+    public:
+        static const rfm22b_register_bits_t SWDET = 0x80;
+        static const rfm22b_register_bits_t PreambleValid = 0x40;
+        static const rfm22b_register_bits_t PreambleInvalid = 0x20;
+        static const rfm22b_register_bits_t RSSI = 0x10;
+        static const rfm22b_register_bits_t WakeupTimer = 0x08;
+        static const rfm22b_register_bits_t LowBatteryDetected = 0x04;
+        static const rfm22b_register_bits_t ChipReady = 0x02;
+        static const rfm22b_register_bits_t PowerOnReset = 0x01;
+    };
+    class InterruptEnable1 {
+    public:
+        static const rfm22b_register_bits_t FifoError = 0x80;
+        static const rfm22b_register_bits_t TxFifoAlmostFull = 0x40;
+        static const rfm22b_register_bits_t TxFifoAlmostEmpty = 0x20;
+        static const rfm22b_register_bits_t RxFifoAlmostFull = 0x10;
+        static const rfm22b_register_bits_t External = 0x08;
+        static const rfm22b_register_bits_t PacketSent = 0x04;
+        static const rfm22b_register_bits_t PacketValid = 0x02;
+        static const rfm22b_register_bits_t CrcError = 0x01;
+    };
+    class InterruptEnable2 {
+    public:
+        static const rfm22b_register_bits_t SWDET = 0x80;
+        static const rfm22b_register_bits_t PreambleValid = 0x40;
+        static const rfm22b_register_bits_t PreambleInvalid = 0x20;
+        static const rfm22b_register_bits_t RSSI = 0x10;
+        static const rfm22b_register_bits_t WakeupTimer = 0x08;
+        static const rfm22b_register_bits_t LowBatteryDetected = 0x04;
+        static const rfm22b_register_bits_t ChipReady = 0x02;
+        static const rfm22b_register_bits_t PowerOnReset = 0x01;
+    };
+    class OperatingMode1 {
+    public:
+        static const rfm22b_register_bits_t SoftwareReset = 0x80;
+        static const rfm22b_register_bits_t EnableLowBatteryDetector = 0x40;
+        static const rfm22b_register_bits_t EnableWakeupTimer = 0x20;
+        static const rfm22b_register_bits_t X32KSEL = 0x10;
+        static const rfm22b_register_bits_t TxOn = 0x08;
+        static const rfm22b_register_bits_t RxOn = 0x04;
+        static const rfm22b_register_bits_t PllOn = 0x02;
+        static const rfm22b_register_bits_t XtalOn = 0x01;
+    };
+    class OperatingMode2 {
+    public:
+        static const rfm22b_register_bits_t AntennaDiversity = 0xC0;
+        static const rfm22b_register_bits_t RxMultiPacket = 0x10;
+        static const rfm22b_register_bits_t AutoTx = 0x08;
+        static const rfm22b_register_bits_t ENLDM = 0x04;
+        static const rfm22b_register_bits_t FifoClearRx = 0x02;
+        static const rfm22b_register_bits_t FifoClearTx = 0x01;
+    };
+    class AdcConfiguration {
+    public:
+        static const rfm22b_register_bits_t Start = 0x80;
+        static const rfm22b_register_bits_t Done = 0x80;
+        static const rfm22b_register_bits_t SEL = 0x70;
+        static const rfm22b_register_bits_t SEL_INTERNAL_TEMPERATURE_SENSOR = 0x00;
+        static const rfm22b_register_bits_t SEL_GPIO0_SINGLE_ENDED = 0x10;
+        static const rfm22b_register_bits_t SEL_GPIO1_SINGLE_ENDED = 0x20;
+        static const rfm22b_register_bits_t SEL_GPIO2_SINGLE_ENDED = 0x30;
+        static const rfm22b_register_bits_t SEL_GPIO0_GPIO1_DIFFERENTIAL = 0x40;
+        static const rfm22b_register_bits_t SEL_GPIO1_GPIO2_DIFFERENTIAL = 0x50;
+        static const rfm22b_register_bits_t SEL_GPIO0_GPIO2_DIFFERENTIAL = 0x60;
+        static const rfm22b_register_bits_t SEL_GND = 0x70;
+        static const rfm22b_register_bits_t REF = 0x0c;
+        static const rfm22b_register_bits_t REF_BANDGAP_VOLTAGE = 0x00;
+        static const rfm22b_register_bits_t REF_VDD_ON_3 = 0x08;
+        static const rfm22b_register_bits_t REF_VDD_ON_2 = 0x0c;
+        static const rfm22b_register_bits_t GAIN = 0x03;
+    };
+    class AdcSensorAmpOffset {
+    public:
+        static const rfm22b_register_bits_t Offset = 0x0F;
+    };
+    class TemperatureSensorCalibration {
+    public:
+        static const rfm22b_register_bits_t TSRANGE = 0xC0;
+        static const rfm22b_register_bits_t TSRANGE_M64_64C = 0x00;
+        static const rfm22b_register_bits_t TSRANGE_M64_192C = 0x40;
+        static const rfm22b_register_bits_t TSRANGE_0_128C = 0x80;
+        static const rfm22b_register_bits_t TSRANGE_M40_216F = 0xC0;
+        static const rfm22b_register_bits_t ENTSOFFS = 0x20;
+        static const rfm22b_register_bits_t ENTSTRIM = 0x10;
+        static const rfm22b_register_bits_t TSTRIM = 0x0F;
+    };
+    class WakeupTimerPeriod {
+    public:
+        static const rfm22b_register_bits_t WTR = 0x3C;
+        static const rfm22b_register_bits_t WTD = 0x03;
+    };
+    class AfcLoopGearshiftOverride {
+    public:
+        static const rfm22b_register_bits_t AFBCD = 0x80;
+        static const rfm22b_register_bits_t ENAFC = 0x40;
+        static const rfm22b_register_bits_t AFCGEARH = 0x38;
+        static const rfm22b_register_bits_t AFCGEARL = 0x07;
+    };
+    class AfcTimingControl {
+    public:
+        static const rfm22b_register_bits_t SWAIT_TIMER = 0xc0;
+        static const rfm22b_register_bits_t SHWAIT = 0x38;
+        static const rfm22b_register_bits_t ANWAIT = 0x07;
+    };
+    class DataAccessControl {
+    public:
+        static const rfm22b_register_bits_t ENPACRX = 0x80;
+        static const rfm22b_register_bits_t MSBFRST = 0x00;
+        static const rfm22b_register_bits_t LSBFRST = 0x40;
+        static const rfm22b_register_bits_t CRCHDRS = 0x00;
+        static const rfm22b_register_bits_t CRCDONLY = 0x20;
+        static const rfm22b_register_bits_t ENPACTX = 0x08;
+        static const rfm22b_register_bits_t ENCRC = 0x04;
+        static const rfm22b_register_bits_t Crc = 0x03;
+        static const rfm22b_register_bits_t CrcCcitt = 0x00;
+        static const rfm22b_register_bits_t Crc16Ibm = 0x01;
+        static const rfm22b_register_bits_t CrcIec16 = 0x02;
+        static const rfm22b_register_bits_t CrcBiacheva = 0x03;
+    };
+    class HeaderControl1 {
+    public:
+        static const rfm22b_register_bits_t BCEN = 0xf0;
+        static const rfm22b_register_bits_t BCEN_NONE = 0x00;
+        static const rfm22b_register_bits_t BCEN_HEADER0 = 0x10;
+        static const rfm22b_register_bits_t BCEN_HEADER1 = 0x20;
+        static const rfm22b_register_bits_t BCEN_HEADER2 = 0x40;
+        static const rfm22b_register_bits_t BCEN_HEADER3 = 0x80;
+        static const rfm22b_register_bits_t HDCH = 0x0f;
+        static const rfm22b_register_bits_t HDCH_NONE = 0x00;
+        static const rfm22b_register_bits_t HDCH_HEADER0 = 0x01;
+        static const rfm22b_register_bits_t HDCH_HEADER1 = 0x02;
+        static const rfm22b_register_bits_t HDCH_HEADER2 = 0x04;
+        static const rfm22b_register_bits_t HDCH_HEADER3 = 0x08;
+    };
+    class HeaderControl2 {
+    public:
+        static const rfm22b_register_bits_t HDLEN = 0x70;
+        static const rfm22b_register_bits_t HDLEN_0 = 0x00;
+        static const rfm22b_register_bits_t HDLEN_1 = 0x10;
+        static const rfm22b_register_bits_t HDLEN_2 = 0x20;
+        static const rfm22b_register_bits_t HDLEN_3 = 0x30;
+        static const rfm22b_register_bits_t HDLEN_4 = 0x40;
+        static const rfm22b_register_bits_t VARPKLEN = 0x00;
+        static const rfm22b_register_bits_t FIXPKLEN = 0x08;
+        static const rfm22b_register_bits_t SYNCLEN = 0x06;
+        static const rfm22b_register_bits_t SYNCLEN_1 = 0x00;
+        static const rfm22b_register_bits_t SYNCLEN_2 = 0x02;
+        static const rfm22b_register_bits_t SYNCLEN_3 = 0x04;
+        static const rfm22b_register_bits_t SYNCLEN_4 = 0x06;
+        static const rfm22b_register_bits_t PREALEN8 = 0x01;
+    };
+    class TxPower {
+    public:
+        static const rfm22b_register_bits_t TXPOW = 0x07;
+        static const rfm22b_register_bits_t TXPOW_4X31 = 0x08; // Not used in RFM22B
+        static const rfm22b_register_bits_t TXPOW_1DBM = 0x00;
+        static const rfm22b_register_bits_t TXPOW_2DBM = 0x01;
+        static const rfm22b_register_bits_t TXPOW_5DBM = 0x02;
+        static const rfm22b_register_bits_t TXPOW_8DBM = 0x03;
+        static const rfm22b_register_bits_t TXPOW_11DBM = 0x04;
+        static const rfm22b_register_bits_t TXPOW_14DBM = 0x05;
+        static const rfm22b_register_bits_t TXPOW_17DBM = 0x06;
+        static const rfm22b_register_bits_t TXPOW_20DBM = 0x07;
+        // static const rfm22b_register_bits_t TXPOW_LNA_SW = 0x08;
+    };
+    class ModulationControl2 {
+    public:
+        static const rfm22b_register_bits_t TRCLK = 0xc0;
+        static const rfm22b_register_bits_t TRCLK_NONE = 0x00;
+        static const rfm22b_register_bits_t TRCLK_GPIO = 0x40;
+        static const rfm22b_register_bits_t TRCLK_SDO = 0x80;
+        static const rfm22b_register_bits_t TRCLK_NIRQ = 0xc0;
+        static const rfm22b_register_bits_t DTMOD = 0x30;
+        static const rfm22b_register_bits_t DTMOD_DIRECT_GPIO = 0x00;
+        static const rfm22b_register_bits_t DTMOD_DIRECT_SDI = 0x10;
+        static const rfm22b_register_bits_t DTMOD_FIFO = 0x20;
+        static const rfm22b_register_bits_t DTMOD_PN9 = 0x30;
+        static const rfm22b_register_bits_t ENINV = 0x08;
+        static const rfm22b_register_bits_t FD8 = 0x04;
+        static const rfm22b_register_bits_t MODTYP = 0x30;
+        static const rfm22b_register_bits_t MODTYP_UNMODULATED = 0x00;
+        static const rfm22b_register_bits_t MODTYP_OOK = 0x01;
+        static const rfm22b_register_bits_t MODTYP_FSK = 0x02;
+        static const rfm22b_register_bits_t MODTYP_GFSK = 0x03;
+    };
+    class FrequencyBandSelect {
+    public:
+        static const rfm22b_register_bits_t SBSEL = 0x40;
+        static const rfm22b_register_bits_t HBSEL = 0x20;
+        static const rfm22b_register_bits_t FB = 0x1f;
     };
 protected:
     void assert_sdn( void );
@@ -301,22 +507,6 @@ private:
 void radio_test( void );
 
 
-// This is the bit in the SPI address that marks it as a write
-#define RF22_SPI_WRITE_MASK 0x80
-
-// This is the maximum message length that can be supported by this library. Limited by
-// the single message length octet in the header. 
-// Yes, 255 is correct even though the FIFO size in the RF22 is only
-// 64 octets. We use interrupts to refill the Tx FIFO during transmission and to empty the
-// Rx FIFO during reception
-// Can be pre-defined to a smaller size (to save SRAM) prior to including this header
-#ifndef RF22_MAX_MESSAGE_LEN
-//#define RF22_MAX_MESSAGE_LEN 255
-#define RF22_MAX_MESSAGE_LEN 50
-#endif
-
-// Max number of octets the RF22 Rx and Tx FIFOs can hold
-#define RF22_FIFO_SIZE 64
 
 // Keep track of the mode the RF22 is in
 #define RF22_MODE_IDLE         0
@@ -344,203 +534,6 @@ void radio_test( void );
 #define RF22_DEVICE_TYPE_RX_TRX                 0x08
 #define RF22_DEVICE_TYPE_TX                     0x07
 
-// RF22_REG_02_DEVICE_STATUS                    0x02
-#define RF22_FFOVL                              0x80
-#define RF22_FFUNFL                             0x40
-#define RF22_RXFFEM                             0x20
-#define RF22_HEADERR                            0x10
-#define RF22_FREQERR                            0x08
-#define RF22_LOCKDET                            0x04
-#define RF22_CPS                                0x03
-#define RF22_CPS_IDLE                           0x00
-#define RF22_CPS_RX                             0x01
-#define RF22_CPS_TX                             0x10
-
-// RF22_REG_03_INTERRUPT_STATUS1                0x03
-#define RF22_IFFERROR                           0x80
-#define RF22_ITXFFAFULL                         0x40
-#define RF22_ITXFFAEM                           0x20
-#define RF22_IRXFFAFULL                         0x10
-#define RF22_IEXT                               0x08
-#define RF22_IPKSENT                            0x04
-#define RF22_IPKVALID                           0x02
-#define RF22_ICRCERROR                          0x01
-
-// RF22_REG_04_INTERRUPT_STATUS2                0x04
-#define RF22_ISWDET                             0x80
-#define RF22_IPREAVAL                           0x40
-#define RF22_IPREAINVAL                         0x20
-#define RF22_IRSSI                              0x10
-#define RF22_IWUT                               0x08
-#define RF22_ILBD                               0x04
-#define RF22_ICHIPRDY                           0x02
-#define RF22_IPOR                               0x01
-
-// RF22_REG_05_INTERRUPT_ENABLE1                0x05
-#define RF22_ENFFERR                            0x80
-#define RF22_ENTXFFAFULL                        0x40
-#define RF22_ENTXFFAEM                          0x20
-#define RF22_ENRXFFAFULL                        0x10
-#define RF22_ENEXT                              0x08
-#define RF22_ENPKSENT                           0x04
-#define RF22_ENPKVALID                          0x02
-#define RF22_ENCRCERROR                         0x01
-
-// RF22_REG_06_INTERRUPT_ENABLE2                0x06
-#define RF22_ENSWDET                            0x80
-#define RF22_ENPREAVAL                          0x40
-#define RF22_ENPREAINVAL                        0x20
-#define RF22_ENRSSI                             0x10
-#define RF22_ENWUT                              0x08
-#define RF22_ENLBDI                             0x04
-#define RF22_ENCHIPRDY                          0x02
-#define RF22_ENPOR                              0x01
-
-// RF22_REG_07_OPERATING_MODE                   0x07
-#define RF22_SWRES                              0x80
-#define RF22_ENLBD                              0x40
-#define RF22_ENWT                               0x20
-#define RF22_X32KSEL                            0x10
-#define RF22_TXON                               0x08
-#define RF22_RXON                               0x04
-#define RF22_PLLON                              0x02
-#define RF22_XTON                               0x01
-
-// RF22_REG_08_OPERATING_MODE2                  0x08
-#define RF22_ANTDIV                             0xc0
-#define RF22_RXMPK                              0x10
-#define RF22_AUTOTX                             0x08
-#define RF22_ENLDM                              0x04
-#define RF22_FFCLRRX                            0x02
-#define RF22_FFCLRTX                            0x01
-
-// RF22_REG_0F_ADC_CONFIGURATION                0x0f
-#define RF22_ADCSTART                           0x80
-#define RF22_ADCDONE                            0x80
-#define RF22_ADCSEL                             0x70
-#define RF22_ADCSEL_INTERNAL_TEMPERATURE_SENSOR 0x00
-#define RF22_ADCSEL_GPIO0_SINGLE_ENDED          0x10
-#define RF22_ADCSEL_GPIO1_SINGLE_ENDED          0x20
-#define RF22_ADCSEL_GPIO2_SINGLE_ENDED          0x30
-#define RF22_ADCSEL_GPIO0_GPIO1_DIFFERENTIAL    0x40
-#define RF22_ADCSEL_GPIO1_GPIO2_DIFFERENTIAL    0x50
-#define RF22_ADCSEL_GPIO0_GPIO2_DIFFERENTIAL    0x60
-#define RF22_ADCSEL_GND                         0x70
-#define RF22_ADCREF                             0x0c
-#define RF22_ADCREF_BANDGAP_VOLTAGE             0x00
-#define RF22_ADCREF_VDD_ON_3                    0x08
-#define RF22_ADCREF_VDD_ON_2                    0x0c
-#define RF22_ADCGAIN                            0x03
-
-// RF22_REG_10_ADC_SENSOR_AMP_OFFSET            0x10
-#define RF22_ADCOFFS                            0x0f
-
-// RF22_REG_12_TEMPERATURE_SENSOR_CALIBRATION   0x12
-#define RF22_TSRANGE                            0xc0
-#define RF22_TSRANGE_M64_64C                    0x00
-#define RF22_TSRANGE_M64_192C                   0x40
-#define RF22_TSRANGE_0_128C                     0x80
-#define RF22_TSRANGE_M40_216F                   0xc0
-#define RF22_ENTSOFFS                           0x20
-#define RF22_ENTSTRIM                           0x10
-#define RF22_TSTRIM                             0x0f
-
-// RF22_REG_14_WAKEUP_TIMER_PERIOD1             0x14
-#define RF22_WTR                                0x3c
-#define RF22_WTD                                0x03
-
-// RF22_REG_1D_AFC_LOOP_GEARSHIFT_OVERRIDE      0x1d
-#define RF22_AFBCD                              0x80
-#define RF22_ENAFC                              0x40
-#define RF22_AFCGEARH                           0x38
-#define RF22_AFCGEARL                           0x07
-
-// RF22_REG_1E_AFC_TIMING_CONTROL               0x1e
-#define RF22_SWAIT_TIMER                        0xc0
-#define RF22_SHWAIT                             0x38
-#define RF22_ANWAIT                             0x07
-
-// RF22_REG_30_DATA_ACCESS_CONTROL              0x30
-#define RF22_ENPACRX                            0x80
-#define RF22_MSBFRST                            0x00
-#define RF22_LSBFRST                            0x40
-#define RF22_CRCHDRS                            0x00
-#define RF22_CRCDONLY                           0x20
-#define RF22_ENPACTX                            0x08
-#define RF22_ENCRC                              0x04
-#define RF22_CRC                                0x03
-#define RF22_CRC_CCITT                          0x00
-#define RF22_CRC_CRC_16_IBM                     0x01
-#define RF22_CRC_IEC_16                         0x02
-#define RF22_CRC_BIACHEVA                       0x03
-
-// RF22_REG_32_HEADER_CONTROL1                  0x32
-#define RF22_BCEN                               0xf0
-#define RF22_BCEN_NONE                          0x00
-#define RF22_BCEN_HEADER0                       0x10
-#define RF22_BCEN_HEADER1                       0x20
-#define RF22_BCEN_HEADER2                       0x40
-#define RF22_BCEN_HEADER3                       0x80
-#define RF22_HDCH                               0x0f
-#define RF22_HDCH_NONE                          0x00
-#define RF22_HDCH_HEADER0                       0x01
-#define RF22_HDCH_HEADER1                       0x02
-#define RF22_HDCH_HEADER2                       0x04
-#define RF22_HDCH_HEADER3                       0x08
-
-// RF22_REG_33_HEADER_CONTROL2                  0x33
-#define RF22_HDLEN                              0x70
-#define RF22_HDLEN_0                            0x00
-#define RF22_HDLEN_1                            0x10
-#define RF22_HDLEN_2                            0x20
-#define RF22_HDLEN_3                            0x30
-#define RF22_HDLEN_4                            0x40
-#define RF22_VARPKLEN                           0x00
-#define RF22_FIXPKLEN                           0x08
-#define RF22_SYNCLEN                            0x06
-#define RF22_SYNCLEN_1                          0x00
-#define RF22_SYNCLEN_2                          0x02
-#define RF22_SYNCLEN_3                          0x04
-#define RF22_SYNCLEN_4                          0x06
-#define RF22_PREALEN8                           0x01
-
-// RF22_REG_6D_TX_POWER                         0x6d
-#define RF22_TXPOW                              0x07
-#define RF22_TXPOW_4X31                         0x08 // Not used in RFM22B
-#define RF22_TXPOW_1DBM                         0x00
-#define RF22_TXPOW_2DBM                         0x01
-#define RF22_TXPOW_5DBM                         0x02
-#define RF22_TXPOW_8DBM                         0x03
-#define RF22_TXPOW_11DBM                        0x04
-#define RF22_TXPOW_14DBM                        0x05
-#define RF22_TXPOW_17DBM                        0x06
-#define RF22_TXPOW_20DBM                        0x07
-// IN RFM23B
-#define RF22_TXPOW_LNA_SW                       0x08
-
-// RF22_REG_71_MODULATION_CONTROL2              0x71
-#define RF22_TRCLK                              0xc0
-#define RF22_TRCLK_NONE                         0x00
-#define RF22_TRCLK_GPIO                         0x40
-#define RF22_TRCLK_SDO                          0x80
-#define RF22_TRCLK_NIRQ                         0xc0
-#define RF22_DTMOD                              0x30
-#define RF22_DTMOD_DIRECT_GPIO                  0x00
-#define RF22_DTMOD_DIRECT_SDI                   0x10
-#define RF22_DTMOD_FIFO                         0x20
-#define RF22_DTMOD_PN9                          0x30
-#define RF22_ENINV                              0x08
-#define RF22_FD8                                0x04
-#define RF22_MODTYP                             0x30
-#define RF22_MODTYP_UNMODULATED                 0x00
-#define RF22_MODTYP_OOK                         0x01
-#define RF22_MODTYP_FSK                         0x02
-#define RF22_MODTYP_GFSK                        0x03
-
-// RF22_REG_75_FREQUENCY_BAND_SELECT            0x75
-#define RF22_SBSEL                              0x40
-#define RF22_HBSEL                              0x20
-#define RF22_FB                                 0x1f
 
 #endif /* _RADIO_H__ */
 
