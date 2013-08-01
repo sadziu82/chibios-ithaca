@@ -18,10 +18,10 @@ typedef uint8_t radio_state_t;
 typedef uint8_t radio_register_address_t;
 typedef uint8_t radio_register_bits_t;
 typedef uint8_t radio_command_t;
+typedef uint16_t radio_node_address_t;
 typedef uint8_t rfm22b_device_type_t;
 typedef uint8_t rfm22b_sync_words_t;
 typedef uint8_t rfm22b_check_header_t;
-typedef uint8_t radio_node_address_t;
 typedef uint8_t rfm22b_register_bits_t;
 typedef struct {
     uint8_t IfFilterBandwidth;
@@ -50,7 +50,11 @@ typedef struct {
 class RadioPacket {
 public:
     RadioPacket(void);
+    uint8_t *data(void);
+    uint8_t len(void);
 protected:
+    uint8_t _data[0x20];
+    uint8_t _len = 0x20;
 };
 
 /*
@@ -59,22 +63,33 @@ protected:
 class Radio {
 public:
     Radio(void);
-    void send(RadioPacket *packet);
+    virtual bool send(RadioPacket *packet, systime_t tmout_period) { return false; }; // TODO
+    virtual bool recv(RadioPacket *packet, systime_t tmout_period) { return false; }; // TODO
+    virtual bool ping(void) { return false; }; // TODO
     radio_state_t getState(void);
-    radio_state_t setState(radio_state_t new_state);
     class State {
     public:
-        static const radio_state_t Uninit = 0;
-        static const radio_state_t Present = 1;
-        static const radio_state_t Ready = 2;
+        static const radio_state_t Uninit = 0x00;
+        static const radio_state_t Present = 0x01;
+        static const radio_state_t Ready = 0x02;
+        static const radio_state_t Idle = 0x03;
+        static const radio_state_t PreSent = 0x04;
+        static const radio_state_t Sending = 0x05;
+        static const radio_state_t PreRecv = 0x06;
+        static const radio_state_t Receiving = 0x07;
+        static const radio_state_t Error = 0xFF;
     };
     class NodeAddress {
     public:
-        static const radio_node_address_t Default = 0;
-        static const radio_node_address_t Broadcast = 0;
+        static const radio_node_address_t Default = 0x00;
+        static const radio_node_address_t Broadcast = 0xFF;
     };
 protected:
+    radio_state_t setState(radio_state_t new_state);
+    bool lock(void);
+    bool unlock(void);
     radio_state_t _state;
+    Mutex _state_mtx;
 };
 
 /*
@@ -124,8 +139,8 @@ public:
     bool setModemConfig(const rfm22b_modem_config_t *config);
     void resetTxFifio(void);
     void resetRxFifio(void);
-    bool send(void);
-    bool recv(void);
+    bool send(RadioPacket *packet, systime_t tmout_period);
+    bool recv(RadioPacket *packet, systime_t tmout_period);
     class Register {
     public:
         static const radio_register_address_t DeviceType = 0x00;
@@ -265,6 +280,8 @@ public:
     class ModemConfig {
     public:
         static const rfm22b_modem_config_t Default;
+        static const rfm22b_modem_config_t FSK_Rb125Fd125;
+        static const rfm22b_modem_config_t GFSK_Rb125Fd125;
     };
     class CheckHeader {
     public:

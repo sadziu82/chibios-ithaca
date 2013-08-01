@@ -9,7 +9,29 @@ char buffer[ 32 ];
 /*
  * @brief   radio ....
  */
+RadioPacket::RadioPacket(void) {
+}
+
+/*
+ * @brief   radio ....
+ */
+uint8_t *RadioPacket::data(void) {
+    return this->_data;
+}
+
+/*
+ * @brief   radio ....
+ */
+uint8_t RadioPacket::len(void) {
+    return this->_len;
+}
+
+/*
+ * @brief   radio ....
+ */
 Radio::Radio(void) {
+    chMtxInit(&this->_state_mtx);
+    // 
     this->setState(Radio::State::Uninit);
 }
 
@@ -27,6 +49,20 @@ radio_state_t Radio::setState(radio_state_t new_state) {
     radio_state_t old_state = this->_state;
     this->_state = new_state;
     return old_state;
+}
+
+/*
+ * @brief   radio ....
+ */
+bool Radio::lock(void) {
+    return chMtxTryLock(&this->_state_mtx);
+}
+
+/*
+ * @brief   radio ....
+ */
+bool Radio::unlock(void) {
+    return chMtxUnlock();
 }
 
 /*
@@ -161,6 +197,55 @@ const rfm22b_modem_config_t Rfm22B::ModemConfig::Default = {
 /*
  * @brief   rfm22b ...
  */
+const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb125Fd125 = {
+    .IfFilterBandwidth = 0x8A,
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0x60,
+    .ClockRecoveryOffset2 = 0x01,
+    .ClockRecoveryOffset1 = 0x55,
+    .ClockRecoveryOffset0 = 0x55,
+    .ClockRecoveryTimingLoopGain1 = 0x02,
+    .ClockRecoveryTimingLoopGain0 = 0xAD,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0A,
+    .SlicerPeakHold = 0x50,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x20,
+    .TxDataRate0 = 0x00,
+    .ModulationControl1 = 0x0C,
+    .ModulationControl2 = 0x22,
+    .FrequencyDeviation = 0xC8
+};
+
+/*
+ * @brief   rfm22b ...
+ */
+const rfm22b_modem_config_t Rfm22B::ModemConfig::GFSK_Rb125Fd125 = {
+    .IfFilterBandwidth = 0x8A,
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0x60,
+    .ClockRecoveryOffset2 = 0x01,
+    .ClockRecoveryOffset1 = 0x55,
+    .ClockRecoveryOffset0 = 0x55,
+    .ClockRecoveryTimingLoopGain1 = 0x02,
+    .ClockRecoveryTimingLoopGain0 = 0xAD,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0A,
+    .SlicerPeakHold = 0x50,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x20,
+    .TxDataRate0 = 0x00,
+    .ModulationControl1 = 0x0C,
+    .ModulationControl2 = 0x23,
+    .FrequencyDeviation = 0xC8
+};
+
+
+/*
+ * @brief   rfm22b ...
+ */
 bool Rfm22B::init(SPIDriver *spi_drv,
                   ioportid_t miso_port, uint16_t miso_pin,
                   ioportid_t mosi_port, uint16_t mosi_pin,
@@ -181,6 +266,7 @@ bool Rfm22B::init(SPIDriver *spi_drv,
     if (not this->reset(timeout)) return false;
     console.write("rfm22b reset completed\r\n");
     if (not this->configure(timeout)) return false;
+    this->setState(Radio::State::Idle);
     console.write("rfm22b configure completed\r\n");
     // 
     return true;
@@ -274,7 +360,8 @@ bool Rfm22B::configure(systime_t tmout) {
     // set frequency
     this->setFrequency(434.0, 0.05);
     // TODO
-    this->setModemConfig(&Rfm22B::ModemConfig::Default);
+    //this->setModemConfig(&Rfm22B::ModemConfig::Default);
+    this->setModemConfig(&Rfm22B::ModemConfig::GFSK_Rb125Fd125);
     // Minimum power
     //setTxPower(RF22_TXPOW_8DBM);
     this->spiWrite(Rfm22B::Register::TxPower, Rfm22B::TxPower::TXPOW_8DBM); // TODO
@@ -346,6 +433,9 @@ bool Rfm22B::setShutdownMode(void) {
  * @brief   rfm22b ...
  */
 bool Rfm22B::setIdleMode(void) {
+    this->spiWrite(Rfm22B::Register::OperatingMode1,
+                   Rfm22B::OperatingMode1::XtalOn);
+    this->setState(Radio::State::Idle);
     return true;
 }
 
@@ -353,6 +443,10 @@ bool Rfm22B::setIdleMode(void) {
  * @brief   rfm22b ...
  */
 bool Rfm22B::setRxMode(void) {
+    this->resetRxFifio();
+    this->spiWrite(Rfm22B::Register::OperatingMode1,
+                   Rfm22B::OperatingMode1::XtalOn |
+                   Rfm22B::OperatingMode1::RxOn);
     return true;
 }
 
@@ -360,6 +454,9 @@ bool Rfm22B::setRxMode(void) {
  * @brief   rfm22b ...
  */
 bool Rfm22B::setTxMode(void) {
+    this->spiWrite(Rfm22B::Register::OperatingMode1,
+                   Rfm22B::OperatingMode1::XtalOn |
+                   Rfm22B::OperatingMode1::TxOn);
     return true;
 }
 
@@ -412,44 +509,85 @@ void Rfm22B::resetRxFifio(void) {
 /*
  * @brief   rfm22b ...
  */
-bool Rfm22B::send(void) {
-    uint8_t packet[0x20] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-                            0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
-    console.write("rfm22b sending packet\r\n");
-    this->resetTxFifio();
-    spiBurstWrite(Rfm22B::Register::FifoAccess, packet, sizeof(packet));
-    spiWrite(Rfm22B::Register::PacketLength, 0x20);
-    spiWrite(Rfm22B::Register::OperatingMode1,
-             Rfm22B::OperatingMode1::XtalOn |
-             Rfm22B::OperatingMode1::TxOn);
-    while ((this->spiRead(Rfm22B::Register::InterruptStatus1) & Rfm22B::InterruptStatus1::PacketSent) == 0) {
-        console.write("rfm22b wait for PacketSent\r\n");
-        chThdSleepMilliseconds(5);
+bool Rfm22B::send(RadioPacket *packet, systime_t tmout_period) {
+    //
+    bool packet_sent = false;
+    systime_t tmout = chTimeNow() + tmout_period;
+    rfm22b_register_bits_t interrupt_status_1;
+    //
+    //console.write("rfm22b sending packet\r\n");
+    if (not this->lock()) {
+        console.write("rfm22b unable to lock\r\n");
+        return false;
     }
-    console.write("rfm22b sent\r\n");
+    if (this->getState() != Radio::State::Idle) {
+        console.write("rfm22b not in idle state\r\n");
+        this->unlock();
+        return false;
+    }
+    this->setState(Radio::State::Sending);
+    this->unlock();
+    this->resetTxFifio();
+    spiBurstWrite(Rfm22B::Register::FifoAccess, packet->data(), sizeof(packet->len()));
+    spiWrite(Rfm22B::Register::PacketLength, packet->len());
+    this->setTxMode();
+    while ((not packet_sent) and (tmout > chTimeNow())) {
+        interrupt_status_1 = this->spiRead(Rfm22B::Register::InterruptStatus1);
+        if ((interrupt_status_1 & Rfm22B::InterruptStatus1::PacketSent) != 0) {
+            packet_sent = true;
+        } else {
+            //console.write("rfm22b wait for PacketSent\r\n");
+            chThdSleepMilliseconds(1);
+        }
+    }
+    this->setIdleMode();
+    if (packet_sent == false) {
+        console.write("rfm22b sending timeout\r\n");
+        return false;
+    }
+    //console.write("rfm22b sent\r\n");
     return true;
 }
 
 /*
  * @brief   rfm22b ...
  */
-bool Rfm22B::recv(void) {
-    uint16_t tmout = 0;
-    console.write("rfm22b receiving packet\r\n");
-    this->resetRxFifio();
-    spiWrite(Rfm22B::Register::OperatingMode1,
-             Rfm22B::OperatingMode1::XtalOn |
-             Rfm22B::OperatingMode1::RxOn);
-    tmout = 0;
-    while ((this->spiRead(Rfm22B::Register::InterruptStatus1) & Rfm22B::InterruptStatus1::PacketValid) == 0) {
-        if ( tmout++ > 100 ) {
-            console.write("rfm22b recv timeout\r\n");
-            return false;
-        }
-        console.write("rfm22b wait for PacketValid\r\n");
-        chThdSleepMilliseconds(50);
+bool Rfm22B::recv(RadioPacket *packet, systime_t tmout_period) {
+    //
+    bool packet_received = false;
+    systime_t tmout = chTimeNow() + tmout_period;
+    rfm22b_register_bits_t interrupt_status_1;
+    //
+    //console.write("rfm22b receiving packet\r\n");
+    //
+    if (not this->lock()) {
+        console.write("rfm22b unable to lock\r\n");
+        return false;
     }
-    console.write("rfm22b received\r\n");
+    if (this->getState() != Radio::State::Idle) {
+        console.write("rfm22b not in idle state\r\n");
+        this->unlock();
+        return false;
+    }
+    //
+    this->setState(Radio::State::Receiving);
+    this->unlock();
+    this->setRxMode();
+    while ((not packet_received) and (tmout > chTimeNow())) {
+        interrupt_status_1 = this->spiRead(Rfm22B::Register::InterruptStatus1);
+        if ((interrupt_status_1 & Rfm22B::InterruptStatus1::PacketValid) != 0) {
+            packet_received = true;
+        } else {
+            //console.write("rfm22b wait for PacketValid\r\n");
+            chThdSleepMilliseconds(1);
+        }
+    }
+    this->setIdleMode();
+    if (packet_received == false) {
+        console.write("rfm22b receiving timeout\r\n");
+        return false;
+    }
+    //console.write("rfm22b received\r\n");
     return true;
 }
 
