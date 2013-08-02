@@ -173,25 +173,169 @@ const rfm22b_sync_words_t Rfm22B::SyncWords::Default[] = { 0x2D, 0xD4 };
 /*
  * @brief   rfm22b ...
  */
-const rfm22b_modem_config_t Rfm22B::ModemConfig::Default = {
-    .IfFilterBandwidth = 0x1B,
-    .ClockRecoveryGearshiftOverride = 0x03,
-    .ClockRecoveryOversamplingRate = 0x41,
-    .ClockRecoveryOffset2 = 0x60,
-    .ClockRecoveryOffset1 = 0x27,
-    .ClockRecoveryOffset0 = 0x52,
-    .ClockRecoveryTimingLoopGain1 = 0x00,
-    .ClockRecoveryTimingLoopGain0 = 0x07,
-    .OokCounterValue1 = 0x40,
-    .OokCounterValue2 = 0x0A,
-    .SlicerPeakHold = 0x1E,
-    .ChargePumpCurrentTrimming = 0x80,
-    .AgcOverride1 = 0x60,
-    .TxDataRate1 = 0x13,
-    .TxDataRate0 = 0xA9,
-    .ModulationControl1 = 0x2C,
-    .ModulationControl2 = 0x22,
-    .FrequencyDeviation = 0x3A
+const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb2Fd5 = {
+0x2b,
+0x03,
+0xf4,
+0x20,
+0x41,
+0x89,
+0x00,
+0x36,
+0x40,
+0x0a,
+0x1d,
+0x80,
+0x60,
+0x10,
+0x62,
+0x2c,
+0x23,
+0x08
+};
+
+/*
+ * @brief   rfm22b ...
+ */
+const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb2_4Fd36 = {
+0x1b,
+0x03,
+0x41,
+0x60,
+0x27,
+0x52,
+0x00,
+0x07,
+0x40,
+0x0a,
+0x1e,
+0x80,
+0x60,
+0x13,
+0xa9,
+0x2c,
+0x22,
+0x3a
+};
+
+/*
+ * @brief   rfm22b ...
+ */
+const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb4_8Fd45 = {
+0x1d, 
+0x03,
+0xa1,
+0x20,
+0x4e,
+0xa5,
+0x00,
+0x13,
+0x40,
+0x0a,
+0x1e,
+0x80,
+0x60,
+0x27,
+0x52,
+0x2c,
+0x22,
+0x48
+};
+
+/*
+ * @brief   rfm22b ...
+ */
+const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb9_6Fd45 = {
+0x1e, 
+0x03,
+0xd0,
+0x00,
+0x9d,
+0x49,
+0x00,
+0x45,
+0x40,
+0x0a,
+0x20,
+0x80,
+0x60,
+0x4e,
+0xa5,
+0x2c,
+0x22,
+0x48
+};
+
+/*
+ * @brief   rfm22b ...
+ */
+const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb19_2Fd9_6 = {
+0x2b, 
+0x03,
+0x34,
+0x02,
+0x75,
+0x25,
+0x07,
+0xff,
+0x40,
+0x0a,
+0x1b,
+0x80,
+0x60,
+0x9d,
+0x49,
+0x2c,
+0x22,
+0x0f
+};
+
+/*
+ * @brief   rfm22b ...
+ */
+const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb38_4Fd19_6 = {
+0x02, 
+0x03,
+0x68,
+0x01,
+0x3a,
+0x93,
+0x04,
+0xd5,
+0x40,
+0x0a,
+0x1e,
+0x80,
+0x60,
+0x09,
+0xd5,
+0x0c,
+0x22,
+0x1f
+};
+
+/*
+ * @brief   rfm22b ...
+ */
+const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb57_6Fd28_8 = {
+0x06, 
+0x03,
+0x45,
+0x01,
+0xd7,
+0xdc,
+0x07,
+0x6e,
+0x40,
+0x0a,
+0x2d,
+0x80,
+0x60,
+0x0e,
+0xbf,
+0x0c,
+0x22,
+0x2e
 };
 
 /*
@@ -217,31 +361,6 @@ const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb125Fd125 = {
     .ModulationControl2 = 0x22,
     .FrequencyDeviation = 0xC8
 };
-
-/*
- * @brief   rfm22b ...
- */
-const rfm22b_modem_config_t Rfm22B::ModemConfig::GFSK_Rb125Fd125 = {
-    .IfFilterBandwidth = 0x8A,
-    .ClockRecoveryGearshiftOverride = 0x03,
-    .ClockRecoveryOversamplingRate = 0x60,
-    .ClockRecoveryOffset2 = 0x01,
-    .ClockRecoveryOffset1 = 0x55,
-    .ClockRecoveryOffset0 = 0x55,
-    .ClockRecoveryTimingLoopGain1 = 0x02,
-    .ClockRecoveryTimingLoopGain0 = 0xAD,
-    .OokCounterValue1 = 0x40,
-    .OokCounterValue2 = 0x0A,
-    .SlicerPeakHold = 0x50,
-    .ChargePumpCurrentTrimming = 0x80,
-    .AgcOverride1 = 0x60,
-    .TxDataRate1 = 0x20,
-    .TxDataRate0 = 0x00,
-    .ModulationControl1 = 0x0C,
-    .ModulationControl2 = 0x23,
-    .FrequencyDeviation = 0xC8
-};
-
 
 /*
  * @brief   rfm22b ...

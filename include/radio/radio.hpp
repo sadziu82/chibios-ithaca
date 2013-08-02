@@ -279,9 +279,14 @@ public:
     };
     class ModemConfig {
     public:
-        static const rfm22b_modem_config_t Default;
+        static const rfm22b_modem_config_t FSK_Rb2Fd5;
+        static const rfm22b_modem_config_t FSK_Rb2_4Fd36;
+        static const rfm22b_modem_config_t FSK_Rb4_8Fd45;
+        static const rfm22b_modem_config_t FSK_Rb9_6Fd45;
+        static const rfm22b_modem_config_t FSK_Rb19_2Fd9_6;
+        static const rfm22b_modem_config_t FSK_Rb38_4Fd19_6;
+        static const rfm22b_modem_config_t FSK_Rb57_6Fd28_8;
         static const rfm22b_modem_config_t FSK_Rb125Fd125;
-        static const rfm22b_modem_config_t GFSK_Rb125Fd125;
     };
     class CheckHeader {
     public:
