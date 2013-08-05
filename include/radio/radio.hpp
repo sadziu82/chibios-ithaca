@@ -52,6 +52,8 @@ public:
     RadioPacket(void);
     uint8_t *data(void);
     uint8_t len(void);
+    void inc(void);
+    uint8_t data0(void);
 protected:
     uint8_t _data[0x20];
     uint8_t _len = 0x20;

@@ -4,8 +4,6 @@
 
 #include "radio.hpp"
 
-char buffer[ 32 ];
-
 /*
  * @brief   radio ....
  */
@@ -24,6 +22,20 @@ uint8_t *RadioPacket::data(void) {
  */
 uint8_t RadioPacket::len(void) {
     return this->_len;
+}
+
+/*
+ * @brief   radio ....
+ */
+void RadioPacket::inc(void) {
+    this->_data[0]++;
+}
+
+/*
+ * @brief   radio ....
+ */
+uint8_t RadioPacket::data0(void) {
+    return this->_data[0];
 }
 
 /*
@@ -174,168 +186,168 @@ const rfm22b_sync_words_t Rfm22B::SyncWords::Default[] = { 0x2D, 0xD4 };
  * @brief   rfm22b ...
  */
 const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb2Fd5 = {
-0x2b,
-0x03,
-0xf4,
-0x20,
-0x41,
-0x89,
-0x00,
-0x36,
-0x40,
-0x0a,
-0x1d,
-0x80,
-0x60,
-0x10,
-0x62,
-0x2c,
-0x23,
-0x08
+    .IfFilterBandwidth = 0x2b,
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0xf4,
+    .ClockRecoveryOffset2 = 0x20,
+    .ClockRecoveryOffset1 = 0x41,
+    .ClockRecoveryOffset0 = 0x89,
+    .ClockRecoveryTimingLoopGain1 = 0x00,
+    .ClockRecoveryTimingLoopGain0 = 0x36,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0a,
+    .SlicerPeakHold = 0x1d,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x10,
+    .TxDataRate0 = 0x62,
+    .ModulationControl1 = 0x2c,
+    .ModulationControl2 = 0x23,
+    .FrequencyDeviation = 0x08
 };
 
 /*
  * @brief   rfm22b ...
  */
 const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb2_4Fd36 = {
-0x1b,
-0x03,
-0x41,
-0x60,
-0x27,
-0x52,
-0x00,
-0x07,
-0x40,
-0x0a,
-0x1e,
-0x80,
-0x60,
-0x13,
-0xa9,
-0x2c,
-0x22,
-0x3a
+    .IfFilterBandwidth = 0x1b,
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0x41,
+    .ClockRecoveryOffset2 = 0x60,
+    .ClockRecoveryOffset1 = 0x27,
+    .ClockRecoveryOffset0 = 0x52,
+    .ClockRecoveryTimingLoopGain1 = 0x00,
+    .ClockRecoveryTimingLoopGain0 = 0x07,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0a,
+    .SlicerPeakHold = 0x1e,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x13,
+    .TxDataRate0 = 0xa9,
+    .ModulationControl1 = 0x2c,
+    .ModulationControl2 = 0x22,
+    .FrequencyDeviation = 0x3a
 };
 
 /*
  * @brief   rfm22b ...
  */
 const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb4_8Fd45 = {
-0x1d, 
-0x03,
-0xa1,
-0x20,
-0x4e,
-0xa5,
-0x00,
-0x13,
-0x40,
-0x0a,
-0x1e,
-0x80,
-0x60,
-0x27,
-0x52,
-0x2c,
-0x22,
-0x48
+    .IfFilterBandwidth = 0x1d, 
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0xa1,
+    .ClockRecoveryOffset2 = 0x20,
+    .ClockRecoveryOffset1 = 0x4e,
+    .ClockRecoveryOffset0 = 0xa5,
+    .ClockRecoveryTimingLoopGain1 = 0x00,
+    .ClockRecoveryTimingLoopGain0 = 0x13,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0a,
+    .SlicerPeakHold = 0x1e,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x27,
+    .TxDataRate0 = 0x52,
+    .ModulationControl1 = 0x2c,
+    .ModulationControl2 = 0x22,
+    .FrequencyDeviation = 0x48
 };
 
 /*
  * @brief   rfm22b ...
  */
 const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb9_6Fd45 = {
-0x1e, 
-0x03,
-0xd0,
-0x00,
-0x9d,
-0x49,
-0x00,
-0x45,
-0x40,
-0x0a,
-0x20,
-0x80,
-0x60,
-0x4e,
-0xa5,
-0x2c,
-0x22,
-0x48
+    .IfFilterBandwidth = 0x1e, 
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0xd0,
+    .ClockRecoveryOffset2 = 0x00,
+    .ClockRecoveryOffset1 = 0x9d,
+    .ClockRecoveryOffset0 = 0x49,
+    .ClockRecoveryTimingLoopGain1 = 0x00,
+    .ClockRecoveryTimingLoopGain0 = 0x45,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0a,
+    .SlicerPeakHold = 0x20,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x4e,
+    .TxDataRate0 = 0xa5,
+    .ModulationControl1 = 0x2c,
+    .ModulationControl2 = 0x22,
+    .FrequencyDeviation = 0x48
 };
 
 /*
  * @brief   rfm22b ...
  */
 const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb19_2Fd9_6 = {
-0x2b, 
-0x03,
-0x34,
-0x02,
-0x75,
-0x25,
-0x07,
-0xff,
-0x40,
-0x0a,
-0x1b,
-0x80,
-0x60,
-0x9d,
-0x49,
-0x2c,
-0x22,
-0x0f
+    .IfFilterBandwidth = 0x2b, 
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0x34,
+    .ClockRecoveryOffset2 = 0x02,
+    .ClockRecoveryOffset1 = 0x75,
+    .ClockRecoveryOffset0 = 0x25,
+    .ClockRecoveryTimingLoopGain1 = 0x07,
+    .ClockRecoveryTimingLoopGain0 = 0xff,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0a,
+    .SlicerPeakHold = 0x1b,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x9d,
+    .TxDataRate0 = 0x49,
+    .ModulationControl1 = 0x2c,
+    .ModulationControl2 = 0x22,
+    .FrequencyDeviation = 0x0f
 };
 
 /*
  * @brief   rfm22b ...
  */
 const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb38_4Fd19_6 = {
-0x02, 
-0x03,
-0x68,
-0x01,
-0x3a,
-0x93,
-0x04,
-0xd5,
-0x40,
-0x0a,
-0x1e,
-0x80,
-0x60,
-0x09,
-0xd5,
-0x0c,
-0x22,
-0x1f
+    .IfFilterBandwidth = 0x02, 
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0x68,
+    .ClockRecoveryOffset2 = 0x01,
+    .ClockRecoveryOffset1 = 0x3a,
+    .ClockRecoveryOffset0 = 0x93,
+    .ClockRecoveryTimingLoopGain1 = 0x04,
+    .ClockRecoveryTimingLoopGain0 = 0xd5,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0a,
+    .SlicerPeakHold = 0x1e,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x09,
+    .TxDataRate0 = 0xd5,
+    .ModulationControl1 = 0x0c,
+    .ModulationControl2 = 0x22,
+    .FrequencyDeviation = 0x1f
 };
 
 /*
  * @brief   rfm22b ...
  */
 const rfm22b_modem_config_t Rfm22B::ModemConfig::FSK_Rb57_6Fd28_8 = {
-0x06, 
-0x03,
-0x45,
-0x01,
-0xd7,
-0xdc,
-0x07,
-0x6e,
-0x40,
-0x0a,
-0x2d,
-0x80,
-0x60,
-0x0e,
-0xbf,
-0x0c,
-0x22,
-0x2e
+    .IfFilterBandwidth = 0x06, 
+    .ClockRecoveryGearshiftOverride = 0x03,
+    .ClockRecoveryOversamplingRate = 0x45,
+    .ClockRecoveryOffset2 = 0x01,
+    .ClockRecoveryOffset1 = 0xd7,
+    .ClockRecoveryOffset0 = 0xdc,
+    .ClockRecoveryTimingLoopGain1 = 0x07,
+    .ClockRecoveryTimingLoopGain0 = 0x6e,
+    .OokCounterValue1 = 0x40,
+    .OokCounterValue2 = 0x0a,
+    .SlicerPeakHold = 0x2d,
+    .ChargePumpCurrentTrimming = 0x80,
+    .AgcOverride1 = 0x60,
+    .TxDataRate1 = 0x0e,
+    .TxDataRate0 = 0xbf,
+    .ModulationControl1 = 0x0c,
+    .ModulationControl2 = 0x22,
+    .FrequencyDeviation = 0x2e
 };
 
 /*
@@ -477,13 +489,15 @@ bool Rfm22B::configure(systime_t tmout) {
     this->spiWrite(Rfm22B::Register::InterruptEnable2,
                    Rfm22B::InterruptEnable2::PreambleValid);
     // set frequency
+    //this->setFrequency(434.0, 0.05);
     this->setFrequency(434.0, 0.05);
     // TODO
     //this->setModemConfig(&Rfm22B::ModemConfig::Default);
-    this->setModemConfig(&Rfm22B::ModemConfig::GFSK_Rb125Fd125);
+    this->setModemConfig(&Rfm22B::ModemConfig::FSK_Rb38_4Fd19_6);
     // Minimum power
     //setTxPower(RF22_TXPOW_8DBM);
-    this->spiWrite(Rfm22B::Register::TxPower, Rfm22B::TxPower::TXPOW_8DBM); // TODO
+    //this->spiWrite(Rfm22B::Register::TxPower, Rfm22B::TxPower::TXPOW_8DBM); // TODO
+    this->spiWrite(Rfm22B::Register::TxPower, Rfm22B::TxPower::TXPOW_20DBM); // TODO
     //
     return true;
 }
@@ -661,7 +675,7 @@ bool Rfm22B::send(RadioPacket *packet, systime_t tmout_period) {
     }
     this->setIdleMode();
     if (packet_sent == false) {
-        console.write("rfm22b sending timeout\r\n");
+        // console.write("rfm22b sending timeout\r\n");
         return false;
     }
     //console.write("rfm22b sent\r\n");
@@ -701,180 +715,13 @@ bool Rfm22B::recv(RadioPacket *packet, systime_t tmout_period) {
             chThdSleepMilliseconds(1);
         }
     }
+    spiBurstRead(Rfm22B::Register::FifoAccess, packet->data(), sizeof(packet->len()));
     this->setIdleMode();
     if (packet_received == false) {
-        console.write("rfm22b receiving timeout\r\n");
+        //console.write("rfm22b receiving timeout\r\n");
         return false;
     }
     //console.write("rfm22b received\r\n");
     return true;
 }
 
-//////////// // REVISIT: top bit is in Header Control 2 0x33
-//////////// void Rfm22B::setPreambleLength(uint8_t nibbles)
-//////////// {
-////////////     this->write(RF22_REG_34_PREAMBLE_LENGTH, nibbles);
-//////////// }
-//////////// 
-//////////// // Caution doesnt set sync word len in Header Control 2 0x33
-//////////// void Rfm22B::setSyncWords(const uint8_t* syncWords, uint8_t len)
-//////////// {
-////////////     spiBurstWrite(RF22_REG_36_SYNC_WORD3, syncWords, len);
-//////////// }
-//////////// 
-//////////// void Rfm22B::setPromiscuous(bool promiscuous)
-//////////// {
-////////////     this->write(RF22_REG_43_HEADER_ENABLE3, promiscuous ? 0x00 : 0xff);
-//////////// }
-//////////// 
-//////////// void Rfm22B::setHeaderTo(uint8_t to)
-//////////// {
-////////////     this->write(RF22_REG_3A_TRANSMIT_HEADER3, to);
-//////////// }
-//////////// 
-//////////// void Rfm22B::setHeaderFrom(uint8_t from)
-//////////// {
-////////////     this->write(RF22_REG_3B_TRANSMIT_HEADER2, from);
-//////////// }
-//////////// 
-//////////// void Rfm22B::setHeaderId(uint8_t id)
-//////////// {
-////////////     this->write(RF22_REG_3C_TRANSMIT_HEADER1, id);
-//////////// }
-//////////// 
-//////////// void Rfm22B::setHeaderFlags(uint8_t flags)
-//////////// {
-////////////     this->write(RF22_REG_3D_TRANSMIT_HEADER0, flags);
-//////////// }
-//////////// 
-//////////// uint8_t Rfm22B::headerTo()
-//////////// {
-////////////     return spiRead(RF22_REG_47_RECEIVED_HEADER3);
-//////////// }
-//////////// 
-//////////// uint8_t Rfm22B::headerFrom()
-//////////// {
-////////////     return spiRead(RF22_REG_48_RECEIVED_HEADER2);
-//////////// }
-//////////// 
-//////////// uint8_t Rfm22B::headerId()
-//////////// {
-////////////     return spiRead(RF22_REG_49_RECEIVED_HEADER1);
-//////////// }
-//////////// 
-//////////// uint8_t Rfm22B::headerFlags()
-//////////// {
-////////////     return spiRead(RF22_REG_4A_RECEIVED_HEADER0);
-//////////// }
-//////////// // Returns true if centre + (fhch * fhs) is within limits
-//////////// // Caution, different versions of the RF22 support different max freq
-//////////// // so YMMV
-//////////// boolean RF22::setFrequency(float centre, float afcPullInRange)
-//////////// {
-////////////     uint8_t fbsel = RF22_SBSEL;
-////////////     uint8_t afclimiter;
-////////////     if (centre < 240.0 || centre > 960.0) // 930.0 for early silicon
-////////////     return false;
-////////////     if (centre >= 480.0)
-////////////     {
-////////////     if (afcPullInRange < 0.0 || afcPullInRange > 0.318750)
-////////////         return false;
-////////////     centre /= 2;
-////////////     fbsel |= RF22_HBSEL;
-////////////     afclimiter = afcPullInRange * 1000000.0 / 1250.0;
-////////////     }
-////////////     else
-////////////     {
-////////////     if (afcPullInRange < 0.0 || afcPullInRange > 0.159375)
-////////////         return false;
-////////////     afclimiter = afcPullInRange * 1000000.0 / 625.0;
-////////////     }
-////////////     centre /= 10.0;
-////////////     float integerPart = floor(centre);
-////////////     float fractionalPart = centre - integerPart;
-//////////// 
-////////////     uint8_t fb = (uint8_t)integerPart - 24; // Range 0 to 23
-////////////     fbsel |= fb;
-////////////     uint16_t fc = fractionalPart * 64000;
-////////////     spiWrite(RF22_REG_73_FREQUENCY_OFFSET1, 0);  // REVISIT
-////////////     spiWrite(RF22_REG_74_FREQUENCY_OFFSET2, 0);
-////////////     spiWrite(RF22_REG_75_FREQUENCY_BAND_SELECT, fbsel);
-////////////     spiWrite(RF22_REG_76_NOMINAL_CARRIER_FREQUENCY1, fc >> 8);
-////////////     spiWrite(RF22_REG_77_NOMINAL_CARRIER_FREQUENCY0, fc & 0xff);
-////////////     spiWrite(RF22_REG_2A_AFC_LIMITER, afclimiter);
-////////////     return !(statusRead() & RF22_FREQERR);
-//////////// }
-//////////// 
-//////////// // Step size in 10kHz increments
-//////////// // Returns true if centre + (fhch * fhs) is within limits
-//////////// boolean RF22::setFHStepSize(uint8_t fhs)
-//////////// {
-////////////     spiWrite(RF22_REG_7A_FREQUENCY_HOPPING_STEP_SIZE, fhs);
-////////////     return !(statusRead() & RF22_FREQERR);
-//////////// }
-//////////// 
-//////////// // Adds fhch * fhs to centre frequency
-//////////// // Returns true if centre + (fhch * fhs) is within limits
-//////////// boolean RF22::setFHChannel(uint8_t fhch)
-//////////// {
-////////////     spiWrite(RF22_REG_79_FREQUENCY_HOPPING_CHANNEL_SELECT, fhch);
-////////////     return !(statusRead() & RF22_FREQERR);
-//////////// }
-//////////// 
-//////////// uint8_t RF22::rssiRead()
-//////////// {
-////////////     return spiRead(RF22_REG_26_RSSI);
-//////////// }
-//////////// 
-//////////// uint8_t RF22::ezmacStatusRead()
-//////////// {
-////////////     return spiRead(RF22_REG_31_EZMAC_STATUS);
-//////////// }
-//////////// 
-//////////// void RF22::setMode(uint8_t mode)
-//////////// {
-////////////     spiWrite(RF22_REG_07_OPERATING_MODE1, mode);
-//////////// }
-//////////// 
-//////////// void RF22::setModeIdle()
-//////////// {
-////////////     if (_mode != RF22_MODE_IDLE)
-////////////     {
-////////////     setMode(_idleMode);
-////////////     _mode = RF22_MODE_IDLE;
-////////////     }
-//////////// }
-//////////// 
-//////////// void RF22::setModeRx()
-//////////// {
-////////////     if (_mode != RF22_MODE_RX)
-////////////     {
-////////////     setMode(_idleMode | RF22_RXON);
-////////////     _mode = RF22_MODE_RX;
-////////////     }
-//////////// }
-//////////// 
-//////////// void RF22::setModeTx()
-//////////// {
-////////////     if (_mode != RF22_MODE_TX)
-////////////     {
-////////////     setMode(_idleMode | RF22_TXON);
-////////////     _mode = RF22_MODE_TX;
-////////////     // Hmmm, if you dont clear the RX FIFO here, then it appears that going
-////////////     // to transmit mode in the middle of a receive can corrupt the
-////////////     // RX FIFO
-////////////     resetRxFifo();
-//////////// //  clearRxBuf();
-////////////     }
-//////////// }
-//////////// 
-//////////// uint8_t  RF22::mode()
-//////////// {
-////////////     return _mode;
-//////////// }
-//////////// 
-//////////// void RF22::setTxPower(uint8_t power)
-//////////// {
-////////////     spiWrite(RF22_REG_6D_TX_POWER, power);
-//////////// }
-//////////// 
