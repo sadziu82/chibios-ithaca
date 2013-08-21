@@ -99,6 +99,14 @@ void Rfm12B::write(const uint16_t reg, const uint16_t data) {
 /*
  * @brief   rfm12b ...
  */
+uint8_t Rfm12B::read(void) {
+    // 
+    return (this->xfer(Rfm12B::Register::RxRead) & 0xFF);
+}
+
+/*
+ * @brief   rfm12b ...
+ */
 uint16_t Rfm12B::status(void) {
     // 
     return this->xfer(Rfm12B::Register::Status);
@@ -163,7 +171,7 @@ bool Rfm12B::reset(systime_t tmout) {
         return false;
     }
     //
-    while ((this->getState() != Radio::State::Present) && (tmout > chTimeNow())) {
+    while ((this->getState() != Radio::State::Present) && (tmout >= chTimeNow())) {
         if ((this->status() & Rfm12B::Status::PowerOnReset) != 0) {
             this->setState(Radio::State::Present);
         } else {
@@ -187,6 +195,9 @@ bool Rfm12B::reset(systime_t tmout) {
         console.write("rfm12b low-battery-detector test failed\r\n");
         return false;
     }
+    // put module into sleep mode
+    this->write(Rfm12B::Register::PowerManagement,
+                Rfm12B::PowerManagement::IdleMode);
     // 
     return true;
 }
@@ -196,13 +207,14 @@ bool Rfm12B::reset(systime_t tmout) {
  */
 bool Rfm12B::configure(systime_t tmout) {
     // initialize rf module
-    this->write(Rfm12B::Register::Configuration, 0x00E7); // config
+    this->write(Rfm12B::Register::Configuration,
+                Rfm12B::Configuration::Band868);
     this->write(Rfm12B::Register::Frequency, 0x0CFF); // frequency - 876.63 MHz
-    this->write(Rfm12B::Register::DataRate, 0x0006); // bit rate, 49 kbps
+    this->write(Rfm12B::Register::DataRate, Rfm12B::DataRate::BR57600); // bit rate, 49 kbps
     this->write(Rfm12B::Register::ReceiverControl, 0x04A2 ); // rx config
     this->write(Rfm12B::Register::DataFilter, 0x00AC); // data filter
     this->write(Rfm12B::Register::FifoResetMode, 0x0083); // synchro 1-st
-    this->write(Rfm12B::Register::SynchronPattern, 0x0055); // synchro 2-nd
+    this->write(Rfm12B::Register::SynchronPattern, 0x00D4); // synchro 2-nd
     //this->write( 0x8209 ); // power
     //this->write( 0xC647 ); // bit rate, 4.8 kbps
     //this->write( 0xC647 ); // bit rate, 9.6 kbps
@@ -230,6 +242,42 @@ bool Rfm12B::configure(systime_t tmout) {
  * @brief   rfm12b ...
  */
 bool Rfm12B::send(RadioPacket *packet, systime_t tmout_period) {
+    //
+    systime_t timeout = chTimeNow() + MS2ST(tmout_period);
+    uint8_t i = 0;
+    static uint8_t buffer[0x20] = {
+        0xAA, 0xAA,
+        0x2D, 0xD4,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0xAA, 0xAA, 0xAA, 0xAA
+    };
+    buffer[4] += 1;
+    buffer[5] += 2;
+    buffer[6] += 3;
+    buffer[7] += 4;
+    // enable tx
+    this->write(Rfm12B::Register::PowerManagement,
+                Rfm12B::PowerManagement::TxMode);
+    // TODO
+    for ( i = 0; i < 0x10 + 1; i++ ) {
+        while (((this->status() & Rfm12B::Status::TxReady) == 0) &&
+               (timeout >= chTimeNow())) {
+            chTimeNow();
+        }
+        if (timeout < chTimeNow()) {
+            console.write("rfm12b timeout while sending: i == %d\r\n", i);
+            // switch to sleep mode and return
+            this->write(Rfm12B::Register::PowerManagement,
+                        Rfm12B::PowerManagement::IdleMode);
+            return false;
+        }
+        // write data
+        this->write(Rfm12B::Register::TxWrite, buffer[i]);
+    }
+    console.write("rfm12b data sent\r\n");
+    // switch to sleep mode
+    this->write(Rfm12B::Register::PowerManagement,
+                Rfm12B::PowerManagement::IdleMode);
     // 
     return true;
 }
@@ -238,6 +286,39 @@ bool Rfm12B::send(RadioPacket *packet, systime_t tmout_period) {
  * @brief   rfm12b ...
  */
 bool Rfm12B::recv(RadioPacket *packet, systime_t tmout_period) {
+    //
+    systime_t timeout = chTimeNow() + MS2ST(tmout_period);
+    uint8_t i = 0;
+    uint8_t buffer[0x20];
+    memset(buffer, 0, 0x20);
+    // enable rx
+    this->write(Rfm12B::Register::PowerManagement,
+                Rfm12B::PowerManagement::RxMode);
+    // clear all interrupts
+    this->status();
+    // reset fifo
+    this->write(Rfm12B::Register::FifoResetMode, 0x0081); // synchro 1-st
+    this->write(Rfm12B::Register::FifoResetMode, 0x0083); // synchro 1-st
+    // TODO
+    for ( i = 0; i < 0x10; i++ ) {
+        while (((this->status() & Rfm12B::Status::RxReady) == 0) && (timeout >= chTimeNow())) {
+            chTimeNow();
+        }
+        if (timeout < chTimeNow()) {
+            console.write("rfm12b timeout while receiving: i == %d\r\n", i);
+            // switch to sleep mode and return
+            this->write(Rfm12B::Register::PowerManagement,
+                        Rfm12B::PowerManagement::IdleMode);
+            return false;
+        }
+        // read data
+        buffer[i] = this->read();
+    }
+    console.write("rfm12b data recv: %2x %2x %2x %2x\r\n",
+                  buffer[0], buffer[1], buffer[2], buffer[3]);
+    // switch to sleep mode
+    this->write(Rfm12B::Register::PowerManagement,
+                Rfm12B::PowerManagement::IdleMode);
     // 
     return true;
 }

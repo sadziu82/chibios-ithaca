@@ -41,6 +41,7 @@ protected:
     void releaseReset(void);
     uint16_t xfer(const uint16_t cmd);
     void write(const uint16_t reg, const uint16_t data);
+    uint8_t read(void);
     uint16_t status(void);
     void sleepMode(void);
     void idleMode(void);
@@ -70,8 +71,35 @@ protected:
         static const uint16_t RxRead = 0xB000;
         static const uint16_t LowBatteryDetector = 0xC000;
     };
+    class Configuration {
+    private:
+        static const rfm12b_register_bits_t InternalDataRegister = 0x0080;
+        static const rfm12b_register_bits_t FifoMode = 0x0040;
+        static const rfm12b_register_bits_t Freq868 = 0x0020;
+        static const rfm12b_register_bits_t Cap125pF = 0x0008;
+    public:
+        static const rfm12b_register_bits_t Band868 =
+                                            InternalDataRegister |
+                                            FifoMode |
+                                            Freq868 |
+                                            Cap125pF;
+    };
+    class DataRate {
+    public:
+        static const rfm12b_register_bits_t BR115200 = 0x02; // Approx 115200 bps
+        static const rfm12b_register_bits_t BR57600 = 0x05; // Approx 57600 bps
+        static const rfm12b_register_bits_t BR49200 = 0x06; // Approx 49200 bps
+        static const rfm12b_register_bits_t BR38400 = 0x08; // Approx 38400 bps
+        static const rfm12b_register_bits_t BR19200 = 0x11; // Approx 19200 bps
+        static const rfm12b_register_bits_t BR9600 = 0x23; // Approx 9600 bps
+        static const rfm12b_register_bits_t BR4800 = 0x47; // Approx 4800 bps
+        static const rfm12b_register_bits_t BR2400 = 0x91; // Approx 2400 bps
+        static const rfm12b_register_bits_t BR1200 = 0x9E; // Approx 1200 bps
+    };
     class Status {
     public:
+        static const rfm12b_register_bits_t TxReady = 0x8000;
+        static const rfm12b_register_bits_t RxReady = 0x8000;
         static const rfm12b_register_bits_t PowerOnReset = 0x4000;
         static const rfm12b_register_bits_t LowBattery = 0x0400;
         static const rfm12b_register_bits_t Rssi = 0x0100;
@@ -85,6 +113,23 @@ protected:
         static const rfm12b_register_bits_t EnableTransmitter = 0x0020;
         static const rfm12b_register_bits_t EnableBaseBandBlock = 0x0040;
         static const rfm12b_register_bits_t EnableReceiver = 0x0080;
+        static const rfm12b_register_bits_t IdleMode =
+                                            EnableBaseBandBlock |
+                                            EnableSynthesizer |
+                                            EnableCrystalOscillator |
+                                            DisableClockOutput;
+        static const rfm12b_register_bits_t TxMode =
+                                            EnableTransmitter |
+                                            EnableBaseBandBlock |
+                                            EnableSynthesizer |
+                                            EnableCrystalOscillator |
+                                            DisableClockOutput;
+        static const rfm12b_register_bits_t RxMode =
+                                            EnableReceiver |
+                                            EnableBaseBandBlock |
+                                            EnableSynthesizer |
+                                            EnableCrystalOscillator |
+                                            DisableClockOutput;
     };
     class LowBattery {
     public:
