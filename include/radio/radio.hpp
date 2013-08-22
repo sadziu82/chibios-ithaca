@@ -21,18 +21,20 @@ typedef uint8_t radio_command_t;
 typedef uint16_t radio_node_address_t;
 
 /*
+ * @brief   radio ...
+ */
+const uint16_t RadioPacketSize = 0x20;
+
+/*
  * @brief   Base display class
  */
 class RadioPacket {
 public:
     RadioPacket(void);
-    uint8_t *data(void);
-    uint8_t len(void);
-    void inc(void);
-    uint8_t data0(void);
+    uint8_t &operator[](uint8_t index);
 protected:
-    uint8_t _data[0x20];
-    uint8_t _len = 0x20;
+    uint8_t _data[RadioPacketSize];
+    uint8_t _dummy_data;
 };
 
 /*
@@ -41,9 +43,10 @@ protected:
 class Radio {
 public:
     Radio(void);
-    virtual bool send(RadioPacket *packet, systime_t tmout_period) { return false; }; // TODO
-    virtual bool recv(RadioPacket *packet, systime_t tmout_period) { return false; }; // TODO
+    virtual bool send(RadioPacket &packet, systime_t tmout_period) { return false; }; // TODO
+    virtual bool recv(RadioPacket &packet, systime_t tmout_period) { return false; }; // TODO
     virtual bool ping(void) { return false; }; // TODO
+    void setGroupId(uint8_t group);
     radio_state_t getState(void);
     class State {
     public:
@@ -68,6 +71,9 @@ protected:
     bool unlock(void);
     radio_state_t _state;
     Mutex _state_mtx;
+    uint8_t _group_id;
+    uint8_t _src_id;
+    uint8_t _dst_id;
 };
 
 #endif /* _RADIO_H__ */

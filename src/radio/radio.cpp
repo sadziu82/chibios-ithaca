@@ -13,29 +13,12 @@ RadioPacket::RadioPacket(void) {
 /*
  * @brief   radio ....
  */
-uint8_t *RadioPacket::data(void) {
-    return this->_data;
-}
-
-/*
- * @brief   radio ....
- */
-uint8_t RadioPacket::len(void) {
-    return this->_len;
-}
-
-/*
- * @brief   radio ....
- */
-void RadioPacket::inc(void) {
-    this->_data[0]++;
-}
-
-/*
- * @brief   radio ....
- */
-uint8_t RadioPacket::data0(void) {
-    return this->_data[0];
+uint8_t &RadioPacket::operator[](uint8_t index) {
+    if (index < RadioPacketSize) {
+        return this->_data[index];
+    } else {
+        return this->_dummy_data;
+    }
 }
 
 /*
@@ -45,6 +28,13 @@ Radio::Radio(void) {
     chMtxInit(&this->_state_mtx);
     // 
     this->setState(Radio::State::Uninit);
+}
+
+/*
+ * @brief   radio ....
+ */
+void Radio::setGroupId(uint8_t group) {
+    this->_group_id = group;
 }
 
 /*

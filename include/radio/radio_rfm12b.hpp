@@ -34,8 +34,8 @@ public:
               ioportid_t nirq_port, uint16_t nirq_pin,
               ioportid_t rst_port, uint16_t rst_pin,
               systime_t tmout = 50);
-    bool send(RadioPacket *packet, systime_t tmout_period);
-    bool recv(RadioPacket *packet, systime_t tmout_period);
+    bool send(RadioPacket &packet, systime_t tmout_period);
+    bool recv(RadioPacket &packet, systime_t tmout_period);
 protected:
     void assertReset(void);
     void releaseReset(void);

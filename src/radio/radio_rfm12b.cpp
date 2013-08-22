@@ -32,7 +32,8 @@ bool Rfm12B::init(SPIDriver *spi_drv,
     this->_spi_cfg.end_cb = NULL;
     this->_spi_cfg.ssport = cs_port;
     this->_spi_cfg.sspad = cs_pin;
-    this->_spi_cfg.cr1 = SPI_CR1_MSTR | SPI_CR1_BR_1 | SPI_CR1_DFF;
+    this->_spi_cfg.cr1 = SPI_CR1_MSTR  | SPI_CR1_DFF |
+                         SPI_CR1_BR_1 | SPI_CR1_BR_0;
     this->_spi_drv = spi_drv;
     // TODO: spi pins
     palSetPadMode(miso_port, miso_pin, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
@@ -211,10 +212,10 @@ bool Rfm12B::configure(systime_t tmout) {
                 Rfm12B::Configuration::Band868);
     this->write(Rfm12B::Register::Frequency, 0x0CFF); // frequency - 876.63 MHz
     this->write(Rfm12B::Register::DataRate, Rfm12B::DataRate::BR57600); // bit rate, 49 kbps
-    this->write(Rfm12B::Register::ReceiverControl, 0x04A2 ); // rx config
+    this->write(Rfm12B::Register::ReceiverControl, 0x0480 ); // rx config
     this->write(Rfm12B::Register::DataFilter, 0x00AC); // data filter
     this->write(Rfm12B::Register::FifoResetMode, 0x0083); // synchro 1-st
-    this->write(Rfm12B::Register::SynchronPattern, 0x00D4); // synchro 2-nd
+    this->write(Rfm12B::Register::SynchronPattern, this->_group_id); // synchro 2-nd
     //this->write( 0x8209 ); // power
     //this->write( 0xC647 ); // bit rate, 4.8 kbps
     //this->write( 0xC647 ); // bit rate, 9.6 kbps
@@ -227,7 +228,7 @@ bool Rfm12B::configure(systime_t tmout) {
     //this->write( 0xCEFC ); // synchro
     //this->write( 0xC487 ); // afc
     this->write(Rfm12B::Register::AFC, 0x0083); // afc
-    this->write(Rfm12B::Register::TxConfig, 0x0050); // tx config
+    this->write(Rfm12B::Register::TxConfig, 0x0070); // tx config
     this->write(Rfm12B::Register::PLL, 0x0077);
     this->write(Rfm12B::Register::WakeUpTimer, 0x0000);
     this->write(Rfm12B::Register::LowDutyCycle, 0x0000);
@@ -241,25 +242,35 @@ bool Rfm12B::configure(systime_t tmout) {
 /*
  * @brief   rfm12b ...
  */
-bool Rfm12B::send(RadioPacket *packet, systime_t tmout_period) {
+bool Rfm12B::send(RadioPacket &packet, systime_t tmout_period) {
     //
     systime_t timeout = chTimeNow() + MS2ST(tmout_period);
+    uint16_t crc = 0;
     uint8_t i = 0;
-    static uint8_t buffer[0x20] = {
-        0xAA, 0xAA,
-        0x2D, 0xD4,
-        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-        0xAA, 0xAA, 0xAA, 0xAA
-    };
-    buffer[4] += 1;
-    buffer[5] += 2;
-    buffer[6] += 3;
-    buffer[7] += 4;
+    uint8_t buffer[RadioPacketSize + 12];
+    // 
+    buffer[0] = 0xAA;
+    buffer[1] = 0xAA;
+    buffer[2] = 0xAA;
+    buffer[3] = 0x2D;
+    buffer[4] = this->_group_id;
+    buffer[5] = this->_src_id;
+    buffer[6] = this->_dst_id;
+    crc = buffer[5] + buffer[6];
+    for (i = 0; i < RadioPacketSize; i++) {
+        buffer[i + 7] = packet[i];
+        crc += buffer[i + 7];
+    }
+    buffer[RadioPacketSize + 7] = (crc >> 8) & 0xFF;
+    buffer[RadioPacketSize + 8] = crc & 0xFF;
+    buffer[RadioPacketSize + 9] = 0xAA;
+    buffer[RadioPacketSize + 10] = 0xAA;
+    buffer[RadioPacketSize + 11] = 0xAA;
     // enable tx
     this->write(Rfm12B::Register::PowerManagement,
                 Rfm12B::PowerManagement::TxMode);
     // TODO
-    for ( i = 0; i < 0x10 + 1; i++ ) {
+    for (i = 0; i < RadioPacketSize + 12; i++) {
         while (((this->status() & Rfm12B::Status::TxReady) == 0) &&
                (timeout >= chTimeNow())) {
             chTimeNow();
@@ -285,12 +296,12 @@ bool Rfm12B::send(RadioPacket *packet, systime_t tmout_period) {
 /*
  * @brief   rfm12b ...
  */
-bool Rfm12B::recv(RadioPacket *packet, systime_t tmout_period) {
+bool Rfm12B::recv(RadioPacket &packet, systime_t tmout_period) {
     //
     systime_t timeout = chTimeNow() + MS2ST(tmout_period);
+    uint16_t crc1 = 0, crc2 = 0;
     uint8_t i = 0;
-    uint8_t buffer[0x20];
-    memset(buffer, 0, 0x20);
+    uint8_t buffer[RadioPacketSize + 6];
     // enable rx
     this->write(Rfm12B::Register::PowerManagement,
                 Rfm12B::PowerManagement::RxMode);
@@ -300,7 +311,7 @@ bool Rfm12B::recv(RadioPacket *packet, systime_t tmout_period) {
     this->write(Rfm12B::Register::FifoResetMode, 0x0081); // synchro 1-st
     this->write(Rfm12B::Register::FifoResetMode, 0x0083); // synchro 1-st
     // TODO
-    for ( i = 0; i < 0x10; i++ ) {
+    for (i = 0; i < RadioPacketSize + 6; i++) {
         while (((this->status() & Rfm12B::Status::RxReady) == 0) && (timeout >= chTimeNow())) {
             chTimeNow();
         }
@@ -313,6 +324,19 @@ bool Rfm12B::recv(RadioPacket *packet, systime_t tmout_period) {
         }
         // read data
         buffer[i] = this->read();
+    }
+    crc1 = buffer[0] + buffer[1];
+    for (i = 0; i < RadioPacketSize; i++) {
+        packet[i] = buffer[i+2];
+        crc1 += packet[i];
+    }
+    crc2 = (buffer[i+2] << 8) + buffer[i+3];
+    if (crc1 != crc2) {
+        console.write("rfm12b crc error: %x vs %x\r\n", crc1, crc2);
+        // switch to sleep mode and return
+        this->write(Rfm12B::Register::PowerManagement,
+                    Rfm12B::PowerManagement::IdleMode);
+        return false;
     }
     console.write("rfm12b data recv: %2x %2x %2x %2x\r\n",
                   buffer[0], buffer[1], buffer[2], buffer[3]);
