@@ -81,6 +81,7 @@ static char *ftoa(char *p, double num) {
  * @brief   console ...
  */
 void Console::write(char *fmt, ...) {
+    chMtxLock(&this->_mutex);
     char buffer[this->_buffer_size];
     char *str = buffer;
     va_list ap;
@@ -240,7 +241,6 @@ unsigned_common:
     //va_start(args, fmt);
     //chsprintf(buffer, fmt, args);
     //va_end(args);
-    chMtxLock(&this->_mutex);
     sdWrite(this->_drv, (uint8_t *)buffer, str - buffer);
     chMtxUnlock();
 }

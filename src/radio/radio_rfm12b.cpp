@@ -285,7 +285,7 @@ bool Rfm12B::send(RadioPacket &packet, systime_t tmout_period) {
         // write data
         this->write(Rfm12B::Register::TxWrite, buffer[i]);
     }
-    console.write("rfm12b data sent\r\n");
+    //console.write("rfm12b data sent\r\n");
     // switch to sleep mode
     this->write(Rfm12B::Register::PowerManagement,
                 Rfm12B::PowerManagement::IdleMode);
@@ -338,8 +338,8 @@ bool Rfm12B::recv(RadioPacket &packet, systime_t tmout_period) {
                     Rfm12B::PowerManagement::IdleMode);
         return false;
     }
-    console.write("rfm12b data recv: %2x %2x %2x %2x\r\n",
-                  buffer[0], buffer[1], buffer[2], buffer[3]);
+    //console.write("rfm12b data recv: %2x %2x %2x %2x\r\n",
+    //              buffer[0], buffer[1], buffer[2], buffer[3]);
     // switch to sleep mode
     this->write(Rfm12B::Register::PowerManagement,
                 Rfm12B::PowerManagement::IdleMode);
