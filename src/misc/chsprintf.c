@@ -32,7 +32,7 @@
 #include <stdarg.h>
 
 #include "ch.h"
-#include "chsprintf.h"
+#include "misc/chsprintf.h"
 
 #define MAX_FILLER 11
 #define FLOAT_PRECISION 100
@@ -109,159 +109,168 @@ static char *ftoa(char *p, double num) {
  * @param[in] chp       pointer to a @p BaseSequentialStream implementing object
  * @param[in] fmt       formatting string
  */
-uint8_t chsprintf(char *str, const char *fmt, ...) {
+uint8_t chvsprintf(char *str, const char *fmt, va_list ap) {
     char *start = str;
-  va_list ap;
-  char *p, *s, c, filler;
-  int i, precision, width;
-  bool_t is_long, left_align;
-  long l;
+    char *p, *s, c, filler;
+    int i, precision, width;
+    bool_t is_long, left_align;
+    long l;
 #if CHPRINTF_USE_FLOAT
-  float f;
-  char tmpbuf[2*MAX_FILLER + 1];
+    float f;
+    char tmpbuf[2*MAX_FILLER + 1];
 #else
-  char tmpbuf[MAX_FILLER + 1];
+    char tmpbuf[MAX_FILLER + 1];
 #endif
-
-  va_start(ap, fmt);
-  while (TRUE) {
-    c = *fmt++;
-    if (c == 0) {
-      va_end(ap);
-      break;
-    }
-    if (c != '%') {
-      *str++ = (uint8_t)c;
-      continue;
-    }
-    p = tmpbuf;
-    s = tmpbuf;
-    left_align = FALSE;
-    if (*fmt == '-') {
-      fmt++;
-      left_align = TRUE;
-    }
-    filler = ' ';
-    if (*fmt == '.') {
-      fmt++;
-      filler = '0';
-    }
-    width = 0;
     while (TRUE) {
-      c = *fmt++;
-      if (c >= '0' && c <= '9')
-        c -= '0';
-      else if (c == '*')
-        c = va_arg(ap, int);
-      else
-        break;
-      width = width * 10 + c;
-    }
-    precision = 0;
-    if (c == '.') {
-      while (TRUE) {
         c = *fmt++;
-        if (c >= '0' && c <= '9')
-          c -= '0';
-        else if (c == '*')
-          c = va_arg(ap, int);
+        if (c == 0) {
+            break;
+        }
+        if (c != '%') {
+            *str++ = (uint8_t)c;
+            continue;
+        }
+        p = tmpbuf;
+        s = tmpbuf;
+        left_align = FALSE;
+        if (*fmt == '-') {
+            fmt++;
+            left_align = TRUE;
+        }
+        filler = ' ';
+        if (*fmt == '.') {
+            fmt++;
+            filler = '0';
+        }
+        width = 0;
+        while (TRUE) {
+            c = *fmt++;
+            if (c >= '0' && c <= '9')
+                c -= '0';
+            else if (c == '*')
+                c = va_arg(ap, int);
+            else
+                break;
+            width = width * 10 + c;
+        }
+        precision = 0;
+        if (c == '.') {
+            while (TRUE) {
+                c = *fmt++;
+                if (c >= '0' && c <= '9')
+                    c -= '0';
+                else if (c == '*')
+                    c = va_arg(ap, int);
+                else
+                    break;
+                precision *= 10;
+                precision += c;
+            }
+        }
+        /* Long modifier.*/
+        if (c == 'l' || c == 'L') {
+            is_long = TRUE;
+            if (*fmt)
+                c = *fmt++;
+        }
         else
-          break;
-        precision *= 10;
-        precision += c;
-      }
-    }
-    /* Long modifier.*/
-    if (c == 'l' || c == 'L') {
-      is_long = TRUE;
-      if (*fmt)
-        c = *fmt++;
-    }
-    else
-      is_long = (c >= 'A') && (c <= 'Z');
+            is_long = (c >= 'A') && (c <= 'Z');
 
-    /* Command decoding.*/
-    switch (c) {
-    case 'c':
-      filler = ' ';
-      *p++ = va_arg(ap, int);
-      break;
-    case 's':
-      filler = ' ';
-      if ((s = va_arg(ap, char *)) == 0)
-        s = "(null)";
-      if (precision == 0)
-        precision = 32767;
-      for (p = s; *p && (--precision >= 0); p++)
-        ;
-      break;
-    case 'D':
-    case 'd':
-      if (is_long)
-        l = va_arg(ap, long);
-      else
-        l = va_arg(ap, int);
-      if (l < 0) {
-        *p++ = '-';
-        l = -l;
-      }
-      p = ltoa(p, l, 10);
-      break;
+        /* Command decoding.*/
+        switch (c) {
+            case 'c':
+                filler = ' ';
+                *p++ = va_arg(ap, int);
+                break;
+            case 's':
+                filler = ' ';
+                if ((s = va_arg(ap, char *)) == 0)
+                    s = "(null)";
+                if (precision == 0)
+                    precision = 32767;
+                for (p = s; *p && (--precision >= 0); p++)
+                    ;
+                break;
+            case 'D':
+            case 'd':
+                if (is_long)
+                    l = va_arg(ap, long);
+                else
+                    l = va_arg(ap, int);
+                if (l < 0) {
+                    *p++ = '-';
+                    l = -l;
+                }
+                p = ltoa(p, l, 10);
+                break;
 #if CHPRINTF_USE_FLOAT
-    case 'f':
-      f = (float) va_arg(ap, double);
-      if (f < 0) {
-        *p++ = '-';
-        f = -f;
-      }
-      p = ftoa(p, f);
-      break;
+            case 'f':
+                f = (float) va_arg(ap, double);
+                if (f < 0) {
+                    *p++ = '-';
+                    f = -f;
+                }
+                p = ftoa(p, f);
+                break;
 #endif
-    case 'X':
-    case 'x':
-      c = 16;
-      goto unsigned_common;
-    case 'U':
-    case 'u':
-      c = 10;
-      goto unsigned_common;
-    case 'O':
-    case 'o':
-      c = 8;
+            case 'X':
+            case 'x':
+                c = 16;
+                goto unsigned_common;
+            case 'U':
+            case 'u':
+                c = 10;
+                goto unsigned_common;
+            case 'O':
+            case 'o':
+                c = 8;
 unsigned_common:
-      if (is_long)
-        l = va_arg(ap, long);
-      else
-        l = va_arg(ap, int);
-      p = ltoa(p, l, c);
-      break;
-    default:
-      *p++ = c;
-      break;
-    }
-    i = (int)(p - s);
-    if ((width -= i) < 0)
-      width = 0;
-    if (left_align == FALSE)
-      width = -width;
-    if (width < 0) {
-      if (*s == '-' && filler == '0') {
-        *str++ = (uint8_t)*s++;
-        i--;
-      }
-      do
-        *str++ = (uint8_t)filler;
-      while (++width != 0);
-    }
-    while (--i >= 0)
-      *str++ = (uint8_t)*s++;
+                if (is_long)
+                    l = va_arg(ap, long);
+                else
+                    l = va_arg(ap, int);
+                p = ltoa(p, l, c);
+                break;
+            default:
+                *p++ = c;
+                break;
+        }
+        i = (int)(p - s);
+        if ((width -= i) < 0)
+            width = 0;
+        if (left_align == FALSE)
+            width = -width;
+        if (width < 0) {
+            if (*s == '-' && filler == '0') {
+                *str++ = (uint8_t)*s++;
+                i--;
+            }
+            do
+                *str++ = (uint8_t)filler;
+            while (++width != 0);
+        }
+        while (--i >= 0)
+            *str++ = (uint8_t)*s++;
 
-    while (width) {
-      *str++ = (uint8_t)filler;
-      width--;
+        while (width) {
+            *str++ = (uint8_t)filler;
+            width--;
+        }
     }
-  }
+    // 
     return str - start;
+}
+
+uint8_t chsprintf(char *buffer, const char *fmt, ...) {
+    // 
+    uint8_t len;
+    va_list args;
+    // 
+    va_start(args, fmt);
+    len = chvsprintf(buffer, fmt, args);
+    va_end(args);
+    // 
+    return len;
 }
 
 /** @} */

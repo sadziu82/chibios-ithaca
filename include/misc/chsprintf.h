@@ -40,6 +40,7 @@
 extern "C" {
 #endif
   uint8_t chsprintf(char *, const char *, ...);
+  uint8_t chvsprintf(char *, const char *, va_list);
 #ifdef __cplusplus
 }
 #endif
