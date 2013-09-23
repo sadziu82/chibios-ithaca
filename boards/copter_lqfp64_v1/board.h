@@ -76,9 +76,11 @@
  * PB5  - spi: spi1 mosi (remap)
  * PB6  - gps: usart1 tx (remap)
  * PB7  - gps: usart1 rx (remap)
+ * PB10 - imu: i2c2 scl
+ * PB11 - imu: i2c2 sda
  */
 #define VAL_GPIOBCRL            0xBBBBB788      /*  PB7...PB0 */
-#define VAL_GPIOBCRH            0x88888888      /* PB15...PB8 */
+#define VAL_GPIOBCRH            0x8888EE88      /* PB15...PB8 */
 #define VAL_GPIOBODR            0xFFFFFFFF
 
 // 
@@ -92,12 +94,14 @@
  * PC1  - adc1
  * PC2  - adc2
  * PC3  - adc3
+ * PC10 - bt: usart3 tx (remap)
+ * PC11 - bt: usart3 rx (remap)
  * PC13 - joy left
  * PC14 - joy right
  * PC15 - joy enter
  */
 #define VAL_GPIOCCRL            0x88880000      /*  PC7...PC0 */
-#define VAL_GPIOCCRH            0x88888888	    /* PC15...PC8 */
+#define VAL_GPIOCCRH            0x8888BB88	    /* PC15...PC8 */
 #define VAL_GPIOCODR            0xFFFFFFFF
 
 /*

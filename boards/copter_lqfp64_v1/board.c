@@ -87,6 +87,7 @@ void boardInit(void) {
     AFIO->MAPR = AFIO_MAPR_SWJ_CFG_JTAGDISABLE |
                  AFIO_MAPR_SPI1_REMAP |
                  AFIO_MAPR_USART1_REMAP |
+                 AFIO_MAPR_USART3_REMAP_PARTIALREMAP |
                  AFIO_MAPR_PD01_REMAP;
     // turn led off
     //palSetPad(SYS_LED_PORT, SYS_LED_PIN);
