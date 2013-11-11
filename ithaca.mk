@@ -17,7 +17,9 @@ CSRC += $(ITHACA)/src/misc/button.c \
         $(ITHACA)/src/misc/font.c \
         $(ITHACA)/src/misc/font_std.c \
         $(ITHACA)/src/misc/lcd_st7735.c \
-        $(ITHACA)/src/misc/imu.c
+        $(ITHACA)/src/misc/imu.c \
+        $(ITHACA)/src/misc/rc_radio.c \
+        $(ITHACA)/src/misc/radio_link.c
 
 ### ## misc
 ### INCDIR += $(ITHACA)/include/

@@ -1,35 +1,7 @@
-#ifndef _ITHACA_H_
-#define _ITHACA_H_
+#ifndef _RC_RADIO_H_
+#define _RC_RADIO_H_
 
-
-#include "ch.h"
-#include "hal.h"
-
-#include "ithacaconf.h"
-
-#if ITHACA_USE_LIB || defined(__DOXYGEN__)
-
-#include <misc/console.h>
-
-#include <misc/block.h>
-#include <misc/rung.h>
-#include <misc/ladder.h>
-
-#include <misc/button.h>
-#include <misc/digital_output.h>
-#include <misc/hcsr501.h>
-#include <misc/keypad.h>
-#include <misc/mono_timer.h>
-#include <misc/pca9633.h>
-
-#include <misc/font.h>
-#include <misc/font_std.h>
-#include <misc/lcd_st7735.h>
-
-#include <misc/imu.h>
-
-#include <misc/rc_radio.h>
-#include <misc/radio_link.h>
+#if ITHACA_USE_RC_RADIO || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -55,7 +27,15 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#endif /* ITHACA_USE_LIB */
 
-#endif /* _ITHACA_H_ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ITHACA_USE_RC_RADIO */
+
+#endif /* _RC_RADIO_H_ */
 
