@@ -53,19 +53,32 @@ typedef struct {
 
 /*
  * @brief   ...
+ * @details ...
  */
-typedef struct {
+struct _imu_t;
+struct _imu_sensor_t;
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+typedef bool (*imu_sensor_read_func_t)(struct _imu_t *, struct _imu_sensor_t *);
+
+/*
+ * @brief   ...
+ */
+typedef struct _imu_sensor_t {
     const char *desc;
     const i2caddr_t addr;
     const imu_sensor_id_t *id;
     const imu_sensor_init_t *init;
-    const imu_sensor_init_t *read;
+    const imu_sensor_read_func_t read_data;
 } imu_sensor_t;
 
 /*
  * @brief   ...
  */
-typedef struct {
+typedef struct _imu_t {
     //
     I2CDriver *i2c_driver;
     I2CConfig i2c_config;
@@ -75,16 +88,27 @@ typedef struct {
     i2caddr_t mag_addr;
     i2caddr_t bar_addr;
     //
-    uint32_t roll;
-    uint32_t pitch;
-    uint32_t yaw;
+    float roll;
+    float pitch;
+    float yaw;
+    float heading;
+    //
+    float q0, q1, q2, q3;
+    float beta;
+    //
+    float acc_x, acc_y, acc_z;
+    float gyro_x, gyro_y, gyro_z, gyro_t;
+    float mag_x, mag_y, mag_z;
+    float mag_scale_x, mag_scale_y, mag_scale_z;
+    float mag_min_x, mag_min_y, mag_min_z;
+    float mag_max_x, mag_max_y, mag_max_z;
     //
     uint32_t speed;
-    uint32_t heading;
     uint32_t altitude;
     //
     char *desc;
     uint16_t refresh_period;
+    float sample_period;
     // 
     const imu_sensor_t *acc;
     const imu_sensor_t *gyro;

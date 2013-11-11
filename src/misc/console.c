@@ -83,7 +83,7 @@ bool consolePrintf(console_t *console, char *fmt, ...) {
     // 
     chMtxLock(&console->mutex);
     //
-    len = chsprintf(buffer, "[%ld] %s: ", chTimeNow(), chThdSelf()->p_name);
+    len = chsprintf(buffer, "[%ld] [%s] ", chTimeNow(), chThdSelf()->p_name);
     sdWrite(console->serial_driver, (uint8_t *)buffer, len);
     // 
     va_start(args, fmt);

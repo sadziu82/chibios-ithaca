@@ -60,7 +60,7 @@
  * Port A setup.
  * Everything input with pull-up except:
  * PA4  - lcd ce
- * PA5  - lcd rs
+ * PA5  - lcd rs/dc
  * PA6  - lcd rst
  * PA7  - lcd pwm
  */

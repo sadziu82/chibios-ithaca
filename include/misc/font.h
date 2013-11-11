@@ -1,32 +1,7 @@
-#ifndef _ITHACA_H_
-#define _ITHACA_H_
+#ifndef _FONT_H_
+#define _FONT_H_
 
-
-#include "ch.h"
-#include "hal.h"
-
-#include "ithacaconf.h"
-
-#if ITHACA_USE_LIB || defined(__DOXYGEN__)
-
-#include <misc/console.h>
-
-#include <misc/block.h>
-#include <misc/rung.h>
-#include <misc/ladder.h>
-
-#include <misc/button.h>
-#include <misc/digital_output.h>
-#include <misc/hcsr501.h>
-#include <misc/keypad.h>
-#include <misc/mono_timer.h>
-#include <misc/pca9633.h>
-
-#include <misc/font.h>
-#include <misc/font_std.h>
-#include <misc/lcd_st7735.h>
-
-#include <misc/imu.h>
+#if ITHACA_USE_FONT || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -44,6 +19,18 @@
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
 
+/*
+ * @brief   ...
+ * @details ...
+ */
+typedef struct {
+    uint8_t width;
+    uint8_t height;
+    uint8_t min;
+    uint8_t max;
+    uint8_t bitmap[];
+} font_t;
+
 /*===========================================================================*/
 /* Driver macros.                                                            */
 /*===========================================================================*/
@@ -52,7 +39,19 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#endif /* ITHACA_USE_LIB */
 
-#endif /* _ITHACA_H_ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+    uint8_t fontGetWidth(const font_t *);
+    uint8_t fontGetHeight(const font_t *);
+    uint8_t fontGetCharWidth(const font_t *, const char c);
+    uint8_t *fontGetCharBitmap(const font_t *, const char c);
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ITHACA_USE_FONT */
+
+#endif /* _FONT_H_ */
 

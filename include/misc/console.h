@@ -41,11 +41,14 @@ typedef struct {
  * @brief   ...
  * @details ...
  */
-#define consoleDebug(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
-//#define consoleDebug(fmt, ...) 
+//#define consoleDebug(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
+#define consoleDebug(fmt, ...) 
 #define consoleInfo(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
+//#define consoleInfo(fmt, ...) 
 #define consoleWarn(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
+//define consoleDebug(fmt, ...) 
 #define consoleError(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
+//#define consoleDebug(fmt, ...) 
 
 /*===========================================================================*/
 /* External declarations.                                                    */

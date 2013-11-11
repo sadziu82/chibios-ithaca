@@ -14,6 +14,9 @@ CSRC += $(ITHACA)/src/misc/button.c \
         $(ITHACA)/src/misc/rung.c \
         $(ITHACA)/src/misc/ladder.c \
         $(ITHACA)/src/misc/chsprintf.c \
+        $(ITHACA)/src/misc/font.c \
+        $(ITHACA)/src/misc/font_std.c \
+        $(ITHACA)/src/misc/lcd_st7735.c \
         $(ITHACA)/src/misc/imu.c
 
 ### ## misc
