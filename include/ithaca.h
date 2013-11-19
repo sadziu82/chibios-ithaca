@@ -28,6 +28,7 @@
 
 #include <misc/imu.h>
 
+#include <misc/rfm12b.h>
 #include <misc/rc_radio.h>
 #include <misc/radio_link.h>
 
@@ -54,6 +55,14 @@
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern EXTConfig EXTCFG1;
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ITHACA_USE_LIB */
 

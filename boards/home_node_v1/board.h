@@ -83,9 +83,15 @@
  * Everything input with pull-up except:
  * PB8  - i2c1 scl (remap)
  * PB9  - i2c1 sda (remap)
+ * PB10 - rfm12b rst
+ * PB11 - rfm12b irq
+ * PB12 - rfm12b cs
+ * PB13 - spi2 clk
+ * PB14 - spi2 miso
+ * PB15 - spi2 mosi
  */
 #define VAL_GPIOBCRL            0x88888888      /*  PB7...PB0 */
-#define VAL_GPIOBCRH            0x888888BB      /* PB15...PB8 */
+#define VAL_GPIOBCRH            0xBBB383BB      /* PB15...PB8 */
 #define VAL_GPIOBODR            0xFFFFFFFF
 
 /*
