@@ -28,7 +28,7 @@
 
 #include <misc/imu.h>
 
-#include <misc/rfm12b.h>
+#include <radio/rfm12b.h>
 #include <misc/rc_radio.h>
 #include <misc/radio_link.h>
 
