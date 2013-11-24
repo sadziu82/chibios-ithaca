@@ -4,7 +4,8 @@
 
 ## misc
 INCDIR += $(ITHACA)/include/
-CSRC += $(ITHACA)/src/misc/button.c \
+CSRC += $(ITHACA)/src/misc/device_id.c \
+        $(ITHACA)/src/misc/button.c \
         $(ITHACA)/src/misc/digital_output.c \
         $(ITHACA)/src/misc/hcsr501.c \
         $(ITHACA)/src/misc/keypad.c \

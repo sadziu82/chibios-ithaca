@@ -9,6 +9,8 @@
 
 #if ITHACA_USE_LIB || defined(__DOXYGEN__)
 
+#include <misc/device_id.h>
+
 #include <misc/console.h>
 
 #include <misc/block.h>
