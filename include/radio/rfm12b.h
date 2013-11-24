@@ -55,6 +55,7 @@ typedef struct {
     uint8_t group_id;
     uint16_t frequency;
     uint8_t data_rate;
+    uint16_t rx_timeout;
 } RFM12BConfig;
 
 /*
@@ -104,6 +105,10 @@ typedef enum {
 typedef struct {
     // rfm12b state
     rfm12b_state_t state;
+    Semaphore semaphore;
+    uint8_t counter;
+    uint8_t buffer[RADIO_PACKET_SIZE + 10];
+    uint16_t txrx_data;
     // rfm12b configuration
     RFM12BConfig *config;
 } RFM12BDriver;
@@ -117,13 +122,13 @@ typedef struct {
 /*===========================================================================*/
 
 //
-extern RFM12BDriver RFM12B;
+extern RFM12BDriver RFM12BD1;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 //
-bool rfm12b_lld_init(RFM12BConfig *config);
+bool rfm12b_lld_init(RFM12BDriver *drv, RFM12BConfig *config);
 bool rfm12b_lld_send(RFM12BDriver *drv, radio_packet_t *packet);
 bool rfm12b_lld_recv(RFM12BDriver *drv, radio_packet_t *packet);
 #ifdef __cplusplus

@@ -19,8 +19,7 @@ CSRC += $(ITHACA)/src/misc/button.c \
         $(ITHACA)/src/misc/lcd_st7735.c \
         $(ITHACA)/src/misc/imu.c \
         $(ITHACA)/src/radio/rfm12b.c \
-        $(ITHACA)/src/misc/rc_radio.c \
-        $(ITHACA)/src/misc/radio_link.c \
+        $(ITHACA)/src/radio/rc.c \
         $(ITHACA)/src/ithaca.c
 
 ### ## misc

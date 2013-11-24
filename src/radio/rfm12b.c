@@ -127,7 +127,7 @@ typedef enum {
  * @brief   ...
  * @details ...
  */
-RFM12BDriver RFM12B;
+RFM12BDriver RFM12BD1;
 
 /*===========================================================================*/
 /* Driver local variables and types.                                         */
@@ -148,12 +148,6 @@ static SPIConfig rfm12b_spi_cfg = {
  * @details ...
  */
 static EXTChannelConfig rfm12b_nirq_ext_cfg;
-
-/*
- * @brief   ...
- * @details ...
- */
-static Semaphore rfm12b_semaphore;
 
 /*===========================================================================*/
 /* Driver local functions.                                                   */
@@ -195,6 +189,14 @@ void rfm12b_lld_write(const RFM12BDriver *drv,
 /*
  * @brief   rfm12b ...
  */
+void rfm12b_lld_start_write(const RFM12BDriver *drv,
+                            const rfm12b_register_t reg, const uint16_t data) {
+    rfm12b_lld_xfer(drv, reg | data);
+}
+
+/*
+ * @brief   rfm12b ...
+ */
 uint8_t rfm12b_lld_read(const RFM12BDriver *drv) {
     // 
     return (rfm12b_lld_xfer(drv, RFM12B_RX_READ) & 0xFF);
@@ -218,9 +220,18 @@ uint16_t rfm12b_lld_status(const RFM12BDriver *drv) {
  */
 static void rfm12b_lld_nirq_handler(EXTDriver *extp,
                                     expchannel_t channel) {
+    RFM12BDriver *drv;
+    //
     (void)extp;
-    (void)channel;
-    switch (RFM12B.state) {
+    //
+    if ((RFM12BD1.state > RFM12B_UNINIT) &&
+        (RFM12BD1.config->nirq_pin == channel)) {
+        drv = &RFM12BD1;
+    // no driver enabled/configured, ignore interrupt
+    } else {
+        return;
+    }
+    switch (drv->state) {
         case RFM12B_UNINIT:
         case RFM12B_STOP:
             return;
@@ -229,10 +240,31 @@ static void rfm12b_lld_nirq_handler(EXTDriver *extp,
         case RFM12B_IDLE_RX:
             break;
         case RFM12B_ACTIVE_RX:
-            chSemSignalI(&rfm12b_semaphore);
+            if (drv->counter < sizeof(drv->buffer)) {
+                drv->buffer[drv->counter] = drv->txrx_data & 0xFF;
+                spiUnselectI(drv->config->spi_drv);
+                drv->txrx_data = RFM12B_RX_READ;
+                spiSelectI(drv->config->spi_drv);
+                spiStartExchangeI(drv->config->spi_drv,
+                                  1, &drv->txrx_data, &drv->txrx_data);
+                drv->counter++;
+            } else {
+                drv->state = RFM12B_IDLE;
+                chSemSignalI(&drv->semaphore);
+            }
             break;
         case RFM12B_ACTIVE_TX:
-            chSemSignalI(&rfm12b_semaphore);
+            if (drv->counter < sizeof(drv->buffer)) {
+                spiUnselectI(drv->config->spi_drv);
+                drv->txrx_data = RFM12B_TX_WRITE | drv->buffer[drv->counter];
+                spiSelectI(drv->config->spi_drv);
+                spiStartSendI(drv->config->spi_drv,
+                              1, &drv->txrx_data);
+                drv->counter++;
+            } else {
+                drv->state = RFM12B_IDLE;
+                chSemSignalI(&drv->semaphore);
+            }
             break;
     }
 } 
@@ -390,55 +422,50 @@ bool rfm12b_lld_send(RFM12BDriver *drv, radio_packet_t *packet) {
     //
     uint16_t crc = 0;
     uint8_t i = 0;
-    uint8_t buffer[RADIO_PACKET_SIZE + 10];
+    systime_t sending_time;
+    static uint8_t freq_chan = 0;
     //
     consoleDebug("rfm12b_lld_send start\r\n");
     // 
-    buffer[0] = 0xAA;
-    buffer[1] = 0xAA;
-    buffer[2] = 0xAA;
-    buffer[3] = 0x2D;
-    buffer[4] = drv->config->group_id;
-    crc = 0;
-    buffer[5] = packet->dst;
-    buffer[6] = packet->src;
-    for (i = 0; i < RADIO_PACKET_SIZE - 2; i++) {
-        buffer[i + 7] = packet->data[i];
-        crc += buffer[i + 7];
+    drv->buffer[0] = 0xAA;
+    drv->buffer[1] = 0xAA;
+    drv->buffer[2] = 0xAA;
+    drv->buffer[3] = 0x2D;
+    drv->buffer[4] = drv->config->group_id;
+    drv->buffer[5] = packet->dst;
+    drv->buffer[6] = packet->src;
+    crc = drv->buffer[5] + drv->buffer[6];
+    for (i = 0; i < sizeof(packet->data); i++) {
+        drv->buffer[i + 7] = packet->data[i];
+        crc += drv->buffer[i + 7];
     }
-    buffer[RADIO_PACKET_SIZE + 5] = (crc >> 8) & 0xFF;
-    buffer[RADIO_PACKET_SIZE + 6] = crc & 0xFF;
-    buffer[RADIO_PACKET_SIZE + 7] = 0xAA;
-    buffer[RADIO_PACKET_SIZE + 8] = 0xAA;
-    buffer[RADIO_PACKET_SIZE + 9] = 0xAA;
+    drv->buffer[RADIO_PACKET_SIZE + 5] = (crc >> 8) & 0xFF;
+    drv->buffer[RADIO_PACKET_SIZE + 6] = crc & 0xFF;
+    drv->buffer[RADIO_PACKET_SIZE + 7] = 0xAA;
+    drv->buffer[RADIO_PACKET_SIZE + 8] = 0xAA;
+    drv->buffer[RADIO_PACKET_SIZE + 9] = 0xAA;
     // start transmission
     rfm12b_lld_status(drv);
-    chSemReset(&rfm12b_semaphore, 0);
+    chSemReset(&drv->semaphore, 0);
+    drv->counter = 0;
     drv->state = RFM12B_ACTIVE_TX;
+    sending_time = chTimeNow();
+    // TODO frequency hopping
+    //rfm12b_lld_write(drv, RFM12B_FREQUENCY,
+    //                 drv->config->frequency + 0x100 * freq_chan);
+    if (freq_chan++ > 5) {
+        freq_chan = 0;
+    }
     rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
                      RFM12B_CONFIGURATION_BAND868_TX);
     rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
                      RFM12B_POWER_MANAGEMENT_TX_MODE);
-    for (i = 0; i < sizeof(buffer); i++) {
-        // wait for transmission to complete
-        // TODO tx_timeout
-        if (chSemWaitTimeout(&rfm12b_semaphore, MS2ST(2)) != RDY_OK) {
-            rfm12b_lld_idle(drv);
-            consoleDebug("rfm12b_lld_send timeout sending data: %d, %02x\r\n",
-                         i, rfm12b_lld_status(drv));
-            return false;
-        }
-        ////if ((rfm12b_lld_status(drv) & RFM12B_STATUS_TX_READY) != 0) {
-            rfm12b_lld_status(drv);
-            rfm12b_lld_write(drv, RFM12B_TX_WRITE, buffer[i]);
-            //consoleDebug("data written (%d)\r\n", i);
-        ////} else {
-        ////    rfm12b_lld_idle(drv);
-        ////    consoleDebug("rfm12b_lld_send tx not empty\r\n");
-        ////    return false;
-        ////}
+    if (chSemWaitTimeout(&drv->semaphore, MS2ST(10)) != RDY_OK) {
+        rfm12b_lld_idle(drv);
+        consoleWarn("rfm12b_lld_send timeout sending data\r\n");
+        return false;
     }
-    consoleDebug("rfm12b_lld_send end\r\n");
+    consoleDebug("rfm12b_lld_send end, took: %dms\r\n", chTimeNow() - sending_time);
     // switch to sleep mode
     rfm12b_lld_idle(drv);
     //
@@ -452,38 +479,48 @@ bool rfm12b_lld_recv(RFM12BDriver *drv, radio_packet_t *packet) {
     //
     (void)drv;
     (void)packet;
+    systime_t sending_time;
     //
-    uint16_t crc = 0;
+    uint16_t crc1, crc2 = 0;
     uint8_t i = 0;
-    uint8_t buffer[RADIO_PACKET_SIZE];
     //
-    consoleDebug("rfm12b_lld_read start\r\n");
-    // enable rx
+    consoleDebug("rfm12b_lld_recv start\r\n");
+    // prepare variables
+    chSemReset(&drv->semaphore, 0);
+    drv->counter = 0;
+    // clear all interrupts
     rfm12b_lld_status(drv);
-    chSemReset(&rfm12b_semaphore, 0);
     drv->state = RFM12B_ACTIVE_RX;
+    // enter rx mode
     rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
                      RFM12B_CONFIGURATION_BAND868_RX);
     rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
                      RFM12B_POWER_MANAGEMENT_RX_MODE);
-    // clear all interrupts
-    rfm12b_lld_status(drv);
     // reset fifo
     rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0x0081); // synchro 1-st
     rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0x0083); // synchro 1-st
-    // TODO
-    for (i = 0; i < sizeof(buffer); i++) {
-        if (chSemWaitTimeout(&rfm12b_semaphore, MS2ST(25)) != RDY_OK) {
-            rfm12b_lld_idle(drv);
-            consoleDebug("rfm12b_lld_read timeout: %d, %02x\r\n",
-                         i, rfm12b_lld_status(drv));
-            return false;
-        }
-        rfm12b_lld_status(drv);
-        buffer[i] = rfm12b_lld_read(drv);
+    sending_time = chTimeNow();
+    if (chSemWaitTimeout(&drv->semaphore,
+                         MS2ST(drv->config->rx_timeout)) != RDY_OK) {
+        rfm12b_lld_idle(drv);
+        //consoleInfo("rfm12b_lld_recv timeout\r\n");
+        return false;
     }
-    //
-    consoleDebug("rfm12b_lld_read end\r\n");
+    packet->dst = drv->buffer[1];
+    packet->src = drv->buffer[2];
+    crc1 = packet->dst + packet->src;
+    for (i = 0; i < sizeof(packet->data); i++ ) {
+        packet->data[i] = drv->buffer[i + 3];
+        crc1 += packet->data[i];
+    }
+    crc2 = (drv->buffer[RADIO_PACKET_SIZE + 1] << 8) +
+           drv->buffer[RADIO_PACKET_SIZE + 2];
+    if (crc1 != crc2) {
+        rfm12b_lld_idle(drv);
+        consoleWarn("rfm12b_lld_recv crc mismatch\r\n");
+        return false;
+    }
+    consoleDebug("rfm12b_lld_recv end, took: %dms\r\n", chTimeNow() - sending_time);
     rfm12b_lld_idle(drv);
     //
     return true;
@@ -493,19 +530,19 @@ bool rfm12b_lld_recv(RFM12BDriver *drv, radio_packet_t *packet) {
  * @brief   ...
  * @details ...
  */
-bool rfm12b_lld_init(RFM12BConfig *config) {
+bool rfm12b_lld_init(RFM12BDriver *drv, RFM12BConfig *config) {
     //
     consoleDebug("rfm12b_lld_init start\r\n");
     //
-    RFM12B.state = RFM12B_UNINIT;
-    RFM12B.config = config;
-    chSemInit(&rfm12b_semaphore, 0);
+    drv->state = RFM12B_UNINIT;
+    drv->config = config;
+    chSemInit(&drv->semaphore, 0);
     //
     extStart(&EXTD1, &EXTCFG1);
     // 
-    if (!rfm12b_lld_init_io(&RFM12B) ||
-        !rfm12b_lld_init_module(&RFM12B) ||
-        !rfm12b_lld_init_setup(&RFM12B)) {
+    if (!rfm12b_lld_init_io(drv) ||
+        !rfm12b_lld_init_module(drv) ||
+        !rfm12b_lld_init_setup(drv)) {
         return false;
     }
     //
