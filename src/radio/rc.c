@@ -1,6 +1,6 @@
 #include <ithaca.h>
 
-#if ITHACA_USE_RC || defined(__DOXYGEN__)
+#if ITHACA_USE_RADIO_RC || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
@@ -82,7 +82,7 @@ static msg_t RCThread(void *arg) {
                         (drv->config->err_cb)(&drv->rf_packet);
                     }
                 }
-                chThdSleepMilliseconds(MS2ST(3));
+                chThdSleepMilliseconds(MS2ST(1));
                 drv->state = RC_MASTER_IDLE;
                 break;
             case RC_SLAVE_IDLE:
@@ -98,7 +98,7 @@ static msg_t RCThread(void *arg) {
                     if (drv->config->cb != NULL) {
                         (drv->config->cb)(&drv->rf_packet);
                     }
-                    chThdSleepMilliseconds(MS2ST(3));
+                    chThdSleepMilliseconds(MS2ST(1));
                     drv->state = RC_SLAVE_TX;
                 } else {
                     if (drv->config->err_cb != NULL) {
@@ -202,5 +202,5 @@ bool rcStop(RCDriver *drv) {
     return true;
 }
 
-#endif /* ITHACA_USE_RC */
+#endif /* ITHACA_USE_RADIO_RC */
 

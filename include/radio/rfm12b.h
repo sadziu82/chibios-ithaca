@@ -1,15 +1,11 @@
-#ifndef _RFM12B_H_
-#define _RFM12B_H_
+#ifndef _RADIO_RFM12B_H_
+#define _RADIO_RFM12B_H_
 
-#if ITHACA_USE_RFM12B || defined(__DOXYGEN__)
+#if ITHACA_USE_RADIO_RFM12B || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
 /*===========================================================================*/
-
-#ifndef RADIO_PACKET_SIZE
-#define RADIO_PACKET_SIZE 0x20
-#endif
 
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
@@ -28,23 +24,14 @@
  * @details ...
  */
 typedef struct {
-    //
-    uint8_t dst;
-    uint8_t src;
-    //
-    uint8_t data[RADIO_PACKET_SIZE - 2];
-} radio_packet_t;
-
-/*
- * @brief   ...
- * @details ...
- */
-typedef struct {
     // spi driver
     SPIDriver *spi_drv;
     // spi cs/ce
     ioportid_t cs_port;
     uint16_t cs_pin;
+    // ext driver
+    EXTDriver *ext_drv;
+    uint32_t ext_mode;
     // irq pin
     ioportid_t nirq_port;
     uint16_t nirq_pin;
@@ -107,10 +94,12 @@ typedef struct {
     rfm12b_state_t state;
     Semaphore semaphore;
     uint8_t counter;
-    uint8_t buffer[RADIO_PACKET_SIZE + 10];
+    uint8_t buffer[sizeof(radio_packet_t) + 12];
     uint16_t txrx_data;
     // rfm12b configuration
     RFM12BConfig *config;
+    // ext channel config
+    EXTChannelConfig nirq_cfg;
 } RFM12BDriver;
 
 /*===========================================================================*/
@@ -135,7 +124,7 @@ bool rfm12b_lld_recv(RFM12BDriver *drv, radio_packet_t *packet);
 }
 #endif
 
-#endif /* ITHACA_USE_RFM12B */
+#endif /* ITHACA_USE_RADIO_RFM12B */
 
-#endif /* _RFM12B_H_ */
+#endif /* _RADIO_RFM12B_H_ */
 
