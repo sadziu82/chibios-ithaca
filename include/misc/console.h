@@ -41,14 +41,42 @@ typedef struct {
  * @brief   ...
  * @details ...
  */
-//#define consoleDebug(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
-#define consoleDebug(fmt, ...) 
+#if ITHACA_USE_CONSOLE_DEBUG
+#define consoleDebug(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
+#else
+#define consoleDebug(fmt, ...)
+#endif
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+#if ITHACA_USE_CONSOLE_INFO
 #define consoleInfo(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
-//#define consoleInfo(fmt, ...) 
+#else
+#define consoleInfo(fmt, ...)
+#endif
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+#if ITHACA_USE_CONSOLE_WARN
 #define consoleWarn(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
-//define consoleWarn(fmt, ...) 
+#else
+#define consoleWarn(fmt, ...)
+#endif
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+#if ITHACA_USE_CONSOLE_WARN
 #define consoleError(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
-//#define consoleError(fmt, ...) 
+#else
+#define consoleError(fmt, ...)
+#endif
+
 
 /*===========================================================================*/
 /* External declarations.                                                    */
