@@ -37,7 +37,7 @@ static msg_t RCThread(void *arg) {
     drv = (RCDriver*)arg;
     chSemInit(&drv->thread_semaphore, 0);
     //
-    while (true) {
+    while (TRUE) {
         switch (drv->state) {
             case RC_UNINIT:
                 if (rfm12b_lld_init(drv->config->radio_drv,
@@ -52,11 +52,6 @@ static msg_t RCThread(void *arg) {
                 chSemWait(&drv->thread_semaphore);
                 break;
             case RC_MASTER_IDLE:
-                // if (wakeup_time > chTimeNow()) {
-                //     chThdSleepUntil(wakeup_time);
-                // } else {
-                //     wakeup_time = chTimeNow();
-                // }
                 drv->state = RC_MASTER_TX;
                 break;
             case RC_MASTER_TX:
@@ -82,7 +77,7 @@ static msg_t RCThread(void *arg) {
                         (drv->config->error_cb)(&drv->rf_packet);
                     }
                 }
-                chThdSleepMilliseconds(MS2ST(1));
+                chThdSleepMilliseconds(2);
                 drv->state = RC_MASTER_IDLE;
                 break;
             case RC_SLAVE_IDLE:
@@ -98,7 +93,7 @@ static msg_t RCThread(void *arg) {
                     if (drv->config->recv_cb != NULL) {
                         (drv->config->recv_cb)(&drv->rf_packet);
                     }
-                    chThdSleepMilliseconds(MS2ST(1));
+                    chThdSleepMilliseconds(2);
                     drv->state = RC_SLAVE_TX;
                 } else {
                     if (drv->config->error_cb != NULL) {

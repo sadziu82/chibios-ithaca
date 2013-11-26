@@ -92,7 +92,6 @@ typedef enum {
     // combined settings
     RFM12B_POWER_MANAGEMENT_IDLE_MODE =
         // TODO
-        RFM12B_POWER_MANAGEMENT_ENABLE_RECEIVER |
         RFM12B_POWER_MANAGEMENT_ENABLE_BASE_BAND_BLOCK |
         RFM12B_POWER_MANAGEMENT_ENABLE_SYNTHESIZER |
         RFM12B_POWER_MANAGEMENT_ENABLE_CRYSTAL_OSCILLATOR |
@@ -378,7 +377,7 @@ static bool rfm12b_lld_init_setup(RFM12BDriver *drv) {
     rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
                      RFM12B_CONFIGURATION_BAND868);
     rfm12b_lld_write(drv, RFM12B_FREQUENCY,
-                     drv->config->frequency);
+                     drv->config->base_freq);
     rfm12b_lld_write(drv, RFM12B_DATA_RATE,
                      drv->config->data_rate);
     rfm12b_lld_write(drv, RFM12B_RECEIVER_CONTROL, 0x0480);
@@ -422,6 +421,14 @@ bool rfm12b_lld_send(RFM12BDriver *drv, radio_packet_t *packet) {
     uint32_t crc;
     //
     consoleDebug("rfm12b_lld_send start\r\n");
+    // frequency hopping
+    if (drv->config->freq_step != 0) {
+        rfm12b_lld_write(drv, RFM12B_FREQUENCY,
+                         drv->config->base_freq + drv->config->freq_step * drv->config->freq_chan);
+        if (drv->config->freq_chan++ > 8) {
+            drv->config->freq_chan = 0;
+        }
+    }
     // initialize hardware crc
     RCC->AHBENR |= RCC_AHBENR_CRCEN;
     //
@@ -471,9 +478,6 @@ bool rfm12b_lld_send(RFM12BDriver *drv, radio_packet_t *packet) {
     chSemReset(&drv->semaphore, 0);
     drv->counter = 0;
     drv->state = RFM12B_ACTIVE_TX;
-    // TODO frequency hopping
-    //rfm12b_lld_write(drv, RFM12B_FREQUENCY,
-    //                 drv->config->frequency + 0x100 * freq_chan);
     rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
                      RFM12B_CONFIGURATION_BAND868_TX);
     rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
@@ -502,6 +506,14 @@ bool rfm12b_lld_recv(RFM12BDriver *drv, radio_packet_t *packet) {
     uint8_t i, j;
     //
     consoleDebug("rfm12b_lld_recv start\r\n");
+    // frequency hopping
+    if (drv->config->freq_step != 0) {
+        rfm12b_lld_write(drv, RFM12B_FREQUENCY,
+                         drv->config->base_freq + drv->config->freq_step * drv->config->freq_chan);
+        if (drv->config->freq_chan++ > 8) {
+            drv->config->freq_chan = 0;
+        }
+    }
     // prepare variables
     chSemReset(&drv->semaphore, 0);
     drv->counter = 0;
@@ -556,9 +568,6 @@ bool rfm12b_lld_recv(RFM12BDriver *drv, radio_packet_t *packet) {
     // read crc from hardware and disable clock
     crc = CRC->DR;
     RCC->AHBENR &= ~RCC_AHBENR_CRCEN;
-    //
-    consoleDebug("DATA[0]: %2X, DATA[1]: %2X\r\n", packet->data[0], packet->data[1]);
-    consoleDebug("CRC: %8X, CRC_RECV: %8X\r\n", crc, crc_recv);
     //
     if (crc != crc_recv) {
         rfm12b_lld_idle(drv);

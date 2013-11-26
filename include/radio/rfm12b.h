@@ -40,9 +40,12 @@ typedef struct {
     uint16_t rst_pin;
     // 
     uint8_t group_id;
-    uint16_t frequency;
+    uint16_t base_freq;
+    uint16_t freq_step;
     uint8_t data_rate;
+    //
     uint16_t rx_timeout;
+    uint8_t freq_chan;
 } RFM12BConfig;
 
 /*
