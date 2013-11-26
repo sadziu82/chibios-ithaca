@@ -57,8 +57,9 @@ typedef struct {
     //
     uint8_t src;
     uint8_t dst;
-    rc_callback_t cb;
-    rc_callback_t err_cb;
+    //
+    rc_callback_t recv_cb;
+    rc_callback_t error_cb;
 #ifdef ITHACA_USE_RADIO_RFM12B
     // low level radio driver
     RFM12BDriver *radio_drv;

@@ -64,8 +64,8 @@ static msg_t RCThread(void *arg) {
                                     &drv->rf_packet)) {
                     drv->state = RC_MASTER_RX;
                 } else {
-                    if (drv->config->err_cb != NULL) {
-                        (drv->config->err_cb)(&drv->rf_packet);
+                    if (drv->config->error_cb != NULL) {
+                        (drv->config->error_cb)(&drv->rf_packet);
                     }
                     drv->state = RC_MASTER_IDLE;
                 }
@@ -74,12 +74,12 @@ static msg_t RCThread(void *arg) {
                 memset(&drv->rf_packet, 0, sizeof(drv->rf_packet));
                 if (rfm12b_lld_recv(drv->config->radio_drv,
                                     &drv->rf_packet)) {
-                    if (drv->config->cb != NULL) {
-                        (drv->config->cb)(&drv->rf_packet);
+                    if (drv->config->recv_cb != NULL) {
+                        (drv->config->recv_cb)(&drv->rf_packet);
                     }
                 } else {
-                    if (drv->config->err_cb != NULL) {
-                        (drv->config->err_cb)(&drv->rf_packet);
+                    if (drv->config->error_cb != NULL) {
+                        (drv->config->error_cb)(&drv->rf_packet);
                     }
                 }
                 chThdSleepMilliseconds(MS2ST(1));
@@ -95,14 +95,14 @@ static msg_t RCThread(void *arg) {
                 memset(&drv->rf_packet, 0, sizeof(drv->rf_packet));
                 if (rfm12b_lld_recv(drv->config->radio_drv,
                                     &drv->rf_packet)) {
-                    if (drv->config->cb != NULL) {
-                        (drv->config->cb)(&drv->rf_packet);
+                    if (drv->config->recv_cb != NULL) {
+                        (drv->config->recv_cb)(&drv->rf_packet);
                     }
                     chThdSleepMilliseconds(MS2ST(1));
                     drv->state = RC_SLAVE_TX;
                 } else {
-                    if (drv->config->err_cb != NULL) {
-                        (drv->config->err_cb)(&drv->rf_packet);
+                    if (drv->config->error_cb != NULL) {
+                        (drv->config->error_cb)(&drv->rf_packet);
                     }
                     drv->state = RC_SLAVE_IDLE;
                 }
@@ -111,8 +111,8 @@ static msg_t RCThread(void *arg) {
                 if (rfm12b_lld_send(drv->config->radio_drv,
                                     &drv->rf_packet)) {
                 } else {
-                    if (drv->config->err_cb != NULL) {
-                        (drv->config->err_cb)(&drv->rf_packet);
+                    if (drv->config->error_cb != NULL) {
+                        (drv->config->error_cb)(&drv->rf_packet);
                     }
                 }
                 drv->state = RC_SLAVE_IDLE;
