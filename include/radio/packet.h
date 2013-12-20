@@ -32,11 +32,6 @@
  * @details ...
  */
 typedef struct {
-    //
-    uint8_t dst;
-    uint8_t src;
-    uint8_t cmd;
-    uint8_t param;
 #if RADIO_PACKET_DATA_SIZE > 0
     //
     uint8_t data[RADIO_PACKET_DATA_SIZE];

@@ -7,8 +7,9 @@
 /*===========================================================================*/
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   RFM12B register definitions.
+ * @details This enum contains addresses for all RFM12B registers.
+            They are ORed with data (in LSBs) when communicating.
  */
 typedef enum {
     RFM12B_STATUS = 0x0000,
@@ -31,8 +32,9 @@ typedef enum {
 } rfm12b_register_t;
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Status register bits.
+ * @details Some bits valuer are repeated - it's only for readability.
+            Depends on current mode they meaning might be changed.
  */
 typedef enum {
     // single bits
@@ -89,19 +91,20 @@ typedef enum {
     RFM12B_POWER_MANAGEMENT_ENABLE_TRANSMITTER = 0x0020,
     RFM12B_POWER_MANAGEMENT_ENABLE_BASE_BAND_BLOCK = 0x0040,
     RFM12B_POWER_MANAGEMENT_ENABLE_RECEIVER = 0x0080,
-    // combined settings
+    // preset idle mode
     RFM12B_POWER_MANAGEMENT_IDLE_MODE =
-        // TODO
         RFM12B_POWER_MANAGEMENT_ENABLE_BASE_BAND_BLOCK |
         RFM12B_POWER_MANAGEMENT_ENABLE_SYNTHESIZER |
         RFM12B_POWER_MANAGEMENT_ENABLE_CRYSTAL_OSCILLATOR |
         RFM12B_POWER_MANAGEMENT_DISABLE_CLOCK_OUTPUT,
+    // preset tx mode
     RFM12B_POWER_MANAGEMENT_TX_MODE =
         RFM12B_POWER_MANAGEMENT_ENABLE_TRANSMITTER |
         RFM12B_POWER_MANAGEMENT_ENABLE_BASE_BAND_BLOCK |
         RFM12B_POWER_MANAGEMENT_ENABLE_SYNTHESIZER |
         RFM12B_POWER_MANAGEMENT_ENABLE_CRYSTAL_OSCILLATOR |
         RFM12B_POWER_MANAGEMENT_DISABLE_CLOCK_OUTPUT,
+    // preset rx mode
     RFM12B_POWER_MANAGEMENT_RX_MODE =
         RFM12B_POWER_MANAGEMENT_ENABLE_RECEIVER |
         RFM12B_POWER_MANAGEMENT_ENABLE_BASE_BAND_BLOCK |
@@ -111,11 +114,13 @@ typedef enum {
 } rfm12b_power_management_t;
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Low-voltage battery detector presets.
+ * @details Low-voltage battery detecter is the only way to check
+            if RFM12B module is present. Setting threshold lower than Vcc
+            should activate IRQ RFM12B line.
  */
 typedef enum {
-    // combined settings
+    // low voltage detection presets
     RFM12B_LOW_BATTERY_V22 = 0x0000,
     RFM12B_LOW_BATTERY_V37 = 0x000F,
 } rfm12b_low_battery_t;
@@ -125,8 +130,7 @@ typedef enum {
 /*===========================================================================*/
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   RFM12B driver one instance.
  */
 RFM12BDriver RFM12BD1;
 
@@ -135,8 +139,7 @@ RFM12BDriver RFM12BD1;
 /*===========================================================================*/
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   SPI configuration used by RFM12B.
  */
 static SPIConfig rfm12b_spi_cfg = {
     .end_cb = NULL,
@@ -149,32 +152,38 @@ static SPIConfig rfm12b_spi_cfg = {
 /*===========================================================================*/
 
 /*
- * @brief   rfm12b ...
+ * @brief   RFM12B IRQ handler.
+ */
+static void rfm12b_lld_nirq_handler(EXTDriver *extp, expchannel_t channel);
+
+/*
+ * @brief   RFM12B RST line assert.
  */
 void rfm12b_lld_assert_rst(const RFM12BDriver *drv) {
-    palClearPad(drv->config->rst_port, drv->config->rst_pin);
+    palClearPad(drv->_cfg->rst_port, drv->_cfg->rst_pin);
 }
 
 /*
- * @brief   rfm12b ...
+ * @brief   RFM12B RST line release.
  */
 void rfm12b_lld_release_rst(const RFM12BDriver *drv) {
-    palSetPad(drv->config->rst_port, drv->config->rst_pin);
+    palSetPad(drv->_cfg->rst_port, drv->_cfg->rst_pin);
 }
 
 /*
- * @brief   rfm12b ...
+ * @brief   Exchange half-word data with RFM12B module.
  */
+inline
 uint16_t rfm12b_lld_xfer(const RFM12BDriver *drv, const uint16_t cmd) {
     uint16_t data = 0;
-    spiSelect(drv->config->spi_drv);
-    spiExchange(drv->config->spi_drv, 1, &cmd, &data);
-    spiUnselect(drv->config->spi_drv);
+    spiSelect(drv->_cfg->spi_drv);
+    spiExchange(drv->_cfg->spi_drv, 1, &cmd, &data);
+    spiUnselect(drv->_cfg->spi_drv);
     return data;
 }
 
 /*
- * @brief   rfm12b ...
+ * @brief   Write one byte data to RFM12B register.
  */
 void rfm12b_lld_write(const RFM12BDriver *drv,
                    const rfm12b_register_t reg, const uint16_t data) {
@@ -182,15 +191,9 @@ void rfm12b_lld_write(const RFM12BDriver *drv,
 }
 
 /*
- * @brief   rfm12b ...
- */
-void rfm12b_lld_start_write(const RFM12BDriver *drv,
-                            const rfm12b_register_t reg, const uint16_t data) {
-    rfm12b_lld_xfer(drv, reg | data);
-}
-
-/*
- * @brief   rfm12b ...
+ * @brief   Read data from RFM12B register.
+ * @details Only status register can be read.
+            Others may return undefined results.
  */
 uint8_t rfm12b_lld_read(const RFM12BDriver *drv) {
     //
@@ -198,8 +201,9 @@ uint8_t rfm12b_lld_read(const RFM12BDriver *drv) {
 }
 
 /*
- * @brief   rfm12b ...
+ * @brief   Return RFM12B status.
  */
+inline
 uint16_t rfm12b_lld_status(const RFM12BDriver *drv) {
     //
     return rfm12b_lld_xfer(drv, RFM12B_STATUS);
@@ -210,90 +214,38 @@ uint16_t rfm12b_lld_status(const RFM12BDriver *drv) {
 /*===========================================================================*/
 
 /*
- * @brief   ...
- * @details ...
- */
-static void rfm12b_lld_nirq_handler(EXTDriver *extp,
-                                    expchannel_t channel) {
-    RFM12BDriver *drv;
-    //
-    (void)extp;
-    //
-    if ((RFM12BD1.state > RFM12B_UNINIT) &&
-        (RFM12BD1.config->nirq_pin == channel)) {
-        drv = &RFM12BD1;
-    // no driver enabled/configured, ignore interrupt
-    } else {
-        return;
-    }
-    switch (drv->state) {
-        case RFM12B_UNINIT:
-        case RFM12B_STOP:
-            return;
-        case RFM12B_IDLE:
-            break;
-        case RFM12B_IDLE_RX:
-            break;
-        case RFM12B_ACTIVE_RX:
-            if (drv->counter < (sizeof(drv->buffer) - 6)) {
-                drv->buffer[drv->counter] = drv->txrx_data & 0xFF;
-                spiUnselectI(drv->config->spi_drv);
-                drv->txrx_data = RFM12B_RX_READ;
-                spiSelectI(drv->config->spi_drv);
-                spiStartExchangeI(drv->config->spi_drv,
-                                  1, &drv->txrx_data, &drv->txrx_data);
-                drv->counter++;
-            } else {
-                drv->state = RFM12B_IDLE;
-                chSemSignalI(&drv->semaphore);
-            }
-            break;
-        case RFM12B_ACTIVE_TX:
-            if (drv->counter < sizeof(drv->buffer)) {
-                spiUnselectI(drv->config->spi_drv);
-                drv->txrx_data = RFM12B_TX_WRITE | drv->buffer[drv->counter];
-                spiSelectI(drv->config->spi_drv);
-                spiStartSendI(drv->config->spi_drv,
-                              1, &drv->txrx_data);
-                drv->counter++;
-            } else {
-                drv->state = RFM12B_IDLE;
-                chSemSignalI(&drv->semaphore);
-            }
-            break;
-    }
-} 
-
-/*
- * @brief   ...
- * @details ...
+ * @brief   Initialize IO ports used by RFM12B.
+ * @details SPI ports (MISO,MOSI,CLK) should be set in proper mode
+            by user. Also EXT driver must be started by user.
+            RST, CE and IRQ lines are configured by this function.
+            SPI driver is configured & started also here.
  */
 static bool rfm12b_lld_init_io(RFM12BDriver *drv) {
     //
     consoleDebug("rfm12b_lld_init_io start\r\n");
     // spi cs
-    rfm12b_spi_cfg.ssport = drv->config->cs_port;
-    rfm12b_spi_cfg.sspad = drv->config->cs_pin;
-    palSetPadMode(drv->config->cs_port, drv->config->cs_pin,
+    rfm12b_spi_cfg.ssport = drv->_cfg->cs_port;
+    rfm12b_spi_cfg.sspad = drv->_cfg->cs_pin;
+    palSetPadMode(drv->_cfg->cs_port, drv->_cfg->cs_pin,
                   PAL_MODE_OUTPUT_PUSHPULL);
     // reset
-    palSetPadMode(drv->config->rst_port, drv->config->rst_pin,
+    palSetPadMode(drv->_cfg->rst_port, drv->_cfg->rst_pin,
                   PAL_MODE_OUTPUT_PUSHPULL);
     // nirq
-    palSetPadMode(drv->config->nirq_port, drv->config->nirq_pin,
+    palSetPadMode(drv->_cfg->nirq_port, drv->_cfg->nirq_pin,
                   PAL_MODE_INPUT_PULLUP);
     drv->nirq_cfg.mode = EXT_CH_MODE_FALLING_EDGE |
-                         drv->config->ext_mode;
+                         drv->_cfg->ext_mode;
     drv->nirq_cfg.cb = rfm12b_lld_nirq_handler;
     // configure ext channel used by radio
     chSysLock();
-    extSetChannelModeI(drv->config->ext_drv,
-                       drv->config->nirq_pin, &drv->nirq_cfg);
+    extSetChannelModeI(drv->_cfg->ext_drv,
+                       drv->_cfg->nirq_pin, &drv->nirq_cfg);
     chSysUnlock()
-    extChannelEnable(drv->config->ext_drv,
-                     drv->config->nirq_pin);
+    extChannelEnable(drv->_cfg->ext_drv,
+                     drv->_cfg->nirq_pin);
     // start spi driver
-    spiStart(drv->config->spi_drv, &rfm12b_spi_cfg);
+    spiStart(drv->_cfg->spi_drv, &rfm12b_spi_cfg);
     //
     consoleDebug("rfm12b_lld_init_io end\r\n");
     //
@@ -322,7 +274,7 @@ static bool rfm12b_lld_init_module(RFM12BDriver *drv) {
     // make sure we are in fifo mode
     rfm12b_lld_write(drv, RFM12B_TX_WRITE, 0);
     //
-    if (palReadPad(drv->config->nirq_port, drv->config->nirq_pin) != 0) {
+    if (palReadPad(drv->_cfg->nirq_port, drv->_cfg->nirq_pin) != 0) {
         consoleDebug("rfm12b_lld_init_module nIRQ high after hardware reset\r\n");
         return false;
     }
@@ -341,7 +293,7 @@ static bool rfm12b_lld_init_module(RFM12BDriver *drv) {
         chThdSleepMilliseconds(5);
     }
     // nIRQ pin should be now high
-    if (palReadPad(drv->config->nirq_port, drv->config->nirq_pin) == 0) {
+    if (palReadPad(drv->_cfg->nirq_port, drv->_cfg->nirq_pin) == 0) {
         consoleDebug("rfm12b_lld_init_module nIRQ low after status read\r\n");
         return false;
     }
@@ -362,7 +314,7 @@ static bool rfm12b_lld_init_module(RFM12BDriver *drv) {
     rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
                      RFM12B_POWER_MANAGEMENT_IDLE_MODE);
     // change driver state
-    drv->state = RFM12B_STOP;
+    drv->_state = RFM12B_STOP;
     //
     consoleDebug("rfm12b_lld_init_module end\r\n");
     return true;
@@ -377,14 +329,14 @@ static bool rfm12b_lld_init_setup(RFM12BDriver *drv) {
     rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
                      RFM12B_CONFIGURATION_BAND868);
     rfm12b_lld_write(drv, RFM12B_FREQUENCY,
-                     drv->config->base_freq);
+                     drv->_cfg->base_freq);
     rfm12b_lld_write(drv, RFM12B_DATA_RATE,
-                     drv->config->data_rate);
+                     drv->_cfg->data_rate);
     rfm12b_lld_write(drv, RFM12B_RECEIVER_CONTROL, 0x0480);
     rfm12b_lld_write(drv, RFM12B_DATA_FILTER, 0x00AC);
     rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0X0083);
     rfm12b_lld_write(drv, RFM12B_SYNCHRON_PATTERN,
-                     drv->config->group_id);
+                     drv->_cfg->group_id);
     rfm12b_lld_write(drv, RFM12B_AFC, 0x0083);
     rfm12b_lld_write(drv, RFM12B_TX_CONFIG, 0x0070);
     rfm12b_lld_write(drv, RFM12B_PLL, 0x0077);
@@ -399,11 +351,11 @@ static bool rfm12b_lld_init_setup(RFM12BDriver *drv) {
 }
 
 /*
- * @brief   rfm12b ...
+ * @brief   Puts RFM12B in idle mode.
  */
 bool rfm12b_lld_idle(RFM12BDriver *drv) {
     // change drivar state
-    drv->state = RFM12B_IDLE;
+    drv->_state = RFM12B_IDLE;
     // switch to sleep mode
     rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
                      RFM12B_POWER_MANAGEMENT_IDLE_MODE);
@@ -413,170 +365,292 @@ bool rfm12b_lld_idle(RFM12BDriver *drv) {
 }
 
 /*
- * @brief   rfm12b ...
+ * @brief   ...
+ * @details ...
  */
-bool rfm12b_lld_send(RFM12BDriver *drv, radio_packet_t *packet) {
+static void rfm12b_lld_nirq_handler(EXTDriver *extp, expchannel_t channel) {
     //
-    uint8_t i, j;
+    RFM12BDriver *drv;
+    (void)extp;
     uint32_t crc;
     //
-    consoleDebug("rfm12b_lld_send start\r\n");
-    // frequency hopping
-    if (drv->config->freq_step != 0) {
-        rfm12b_lld_write(drv, RFM12B_FREQUENCY,
-                         drv->config->base_freq + drv->config->freq_step * drv->config->freq_chan);
-        if (drv->config->freq_chan++ > 8) {
-            drv->config->freq_chan = 0;
+    if (RFM12BD1._cfg->nirq_pin == channel) {
+        drv = &RFM12BD1;
+    } else {
+        // no driver enabled/configured, ignore interrupt
+        return;
+    }
+     switch (drv->_state) {
+        case RFM12B_UNINIT:
+        case RFM12B_STOP:
+        case RFM12B_IDLE:
+        case RFM12B_RX_INIT:
+            break;
+        case RFM12B_RX_WAIT:
+            // reset CRC
+            CRC->CR = (uint32_t)0x01;
+            // initiate first read
+            spiUnselectI(drv->_cfg->spi_drv);
+            drv->txrx_data = RFM12B_RX_READ;
+            spiSelectI(drv->_cfg->spi_drv);
+            spiStartExchangeI(drv->_cfg->spi_drv,
+                              1, &drv->txrx_data, &drv->txrx_data);
+            // single packet reception should not take long
+            // TODO make this timeout user configurable
+            drv->_buff_cnt = 0;
+            drv->_tmout = chTimeNow() + MS2ST(100);
+            drv->_state = RFM12B_RX_ACTIVE;
+            break;
+        case RFM12B_RX_ACTIVE:
+            if (drv->_buff_cnt < (sizeof(drv->buffer) - 6)) {
+                // store previously read data
+                drv->buffer[drv->_buff_cnt] = drv->txrx_data & 0xFF;
+                // read next data
+                spiUnselectI(drv->_cfg->spi_drv);
+                drv->txrx_data = RFM12B_RX_READ;
+                spiSelectI(drv->_cfg->spi_drv);
+                spiStartExchangeI(drv->_cfg->spi_drv,
+                                  1, &drv->txrx_data, &drv->txrx_data);
+                // calculate crc
+                if (drv->_buff_cnt < sizeof(radio_packet_t)) {
+                    CRC->DR = drv->buffer[drv->_buff_cnt];
+                }
+                drv->_buff_cnt++;
+            } else {
+                drv->_state = RFM12B_RX_COMPLETE;
+                spiUnselectI(drv->_cfg->spi_drv);
+                chSemSignalI(&drv->_sem);
+            }
+            break;
+        case RFM12B_RX_COMPLETE:
+            break;
+        case RFM12B_RX_ERROR:
+            break;
+        case RFM12B_TX_INIT:
+            break;
+        case RFM12B_TX_ACTIVE:
+            if (drv->_buff_cnt < sizeof(drv->buffer)) {
+                spiUnselectI(drv->_cfg->spi_drv);
+                drv->txrx_data = RFM12B_TX_WRITE | drv->buffer[drv->_buff_cnt];
+                spiSelectI(drv->_cfg->spi_drv);
+                spiStartSendI(drv->_cfg->spi_drv,
+                              1, &drv->txrx_data);
+                drv->_buff_cnt++;
+                // calculate crc
+                if (drv->_buff_cnt <= sizeof(radio_packet_t)) {
+                    CRC->DR = drv->buffer[drv->_buff_cnt + 5];
+                } else if (drv->_buff_cnt == sizeof(radio_packet_t) + 1) {
+                    crc = CRC->DR;
+                    drv->buffer[drv->_buff_cnt + 8] = (crc >> 24) & 0xFF;
+                    drv->buffer[drv->_buff_cnt + 7] = (crc >> 16) & 0xFF;
+                    drv->buffer[drv->_buff_cnt + 6] = (crc >> 8) & 0xFF;
+                    drv->buffer[drv->_buff_cnt + 5] = crc & 0xFF;
+                }
+            } else {
+                drv->_state = RFM12B_TX_COMPLETE;
+                chSemSignalI(&drv->_sem);
+            }
+            break;
+        case RFM12B_TX_COMPLETE:
+            spiUnselectI(drv->_cfg->spi_drv);
+        case RFM12B_TX_ERROR:
+            break;
+     }
+} 
+
+/*
+ * @brief   RFM12B thread.
+ * @details This thread performs switch between different states
+            of RFM12B module. It also executes defined callbacks.
+ */
+__attribute__((noreturn))
+static void RFM12BThread(void *arg) {
+    // 
+    uint32_t crc, *crc_ptr;
+    RFM12BDriver *drv = (RFM12BDriver*)arg;
+    chRegSetThreadName("RFM12BThread");
+    chSemReset(&drv->_sem, 0);
+    consoleDebug("RFM12BThread: start\r\n");
+    //
+    while (!chThdShouldTerminate()) {
+        chSemWaitTimeout(&drv->_sem, MS2ST(1));
+        switch (drv->_state) {
+            case RFM12B_UNINIT:
+                break;
+            case RFM12B_STOP:
+                consoleDebug("RFM12BThread(RFM12B_STOP)\r\n");
+                drv->_state = RFM12B_IDLE;
+                break;
+            case RFM12B_IDLE:
+                consoleDebug("RFM12BThread(RFM12B_IDLE)\r\n");
+                if (drv->_cfg->idle_cb != NULL) {
+                    drv->_cfg->idle_cb(NULL);
+                } else {
+                    // reconfigure RFM12B module
+                    rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
+                                     RFM12B_CONFIGURATION_BAND868_RX);
+                    rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
+                                     RFM12B_POWER_MANAGEMENT_IDLE_MODE);
+                }
+                break;
+            case RFM12B_RX_INIT:
+                //
+                if (drv->_cfg->recv_timeout != 0) {
+                    drv->_tmout = chTimeNow() + MS2ST(drv->_cfg->recv_timeout);
+                } else {
+                    drv->_tmout = 0;
+                }
+                // reconfigure RFM12B module
+                rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
+                                 RFM12B_CONFIGURATION_BAND868_RX);
+                rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
+                                 RFM12B_POWER_MANAGEMENT_RX_MODE);
+                // clear interrupts
+                rfm12b_lld_status(drv);
+                rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0x0081);
+                rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0x0083);
+                // enable hardware crc32
+                RCC->AHBENR |= RCC_AHBENR_CRCEN;
+                // change driver state
+                drv->_state = RFM12B_RX_WAIT;
+                consoleDebug("RFM12BThread(RFM12B_RX_INIT)\r\n");
+                break;
+            case RFM12B_RX_WAIT:
+            case RFM12B_RX_ACTIVE:
+                if ((drv->_tmout != 0) &&
+                    (drv->_tmout <= chTimeNow())) {
+                        drv->_state = RFM12B_RX_ERROR;
+                        consoleDebug("RFM12BThread(RFM12B_RX_WAIT): timeout\r\n");
+                        break;
+                }
+                break;
+            case RFM12B_RX_COMPLETE:
+                // get received crc
+                crc_ptr = (uint32_t *)(drv->buffer + sizeof(radio_packet_t));
+                // read crc and disable hardware module
+                crc = CRC->DR;
+                RCC->AHBENR &= ~RCC_AHBENR_CRCEN;
+                //
+                consoleWarn("%2X, %2X, %2X, %2X\r\n", drv->buffer[0], drv->buffer[1], drv->buffer[2], drv->buffer[3]);
+                // verify crc
+                if (crc != *crc_ptr) {
+                    drv->_state = RFM12B_RX_ERROR;
+                    consoleWarn("RFM12BThread(RFM12B_RX_COMPLETE): crc != crc_recv - %8X vs %8X\r\n", crc, *crc_ptr);
+                    break;
+                }
+                //
+                consoleDebug("RFM12BThread(RFM12B_RX_COMPLETE): ok\r\n");
+                // run call back
+                if ((drv->_cfg->recv_done_cb != NULL) &&
+                    (drv->_cfg->recv_done_cb(NULL) == 0)) {
+                } else {
+                    // return to idle state
+                    drv->_state = RFM12B_IDLE;
+                }
+                chSemSignal(&drv->_sem);
+                break;
+            case RFM12B_RX_ERROR:
+                consoleDebug("RFM12BThread(RFM12B_RX_ERROR)\r\n");
+                // run error call back
+                if ((drv->_cfg->recv_error_cb != NULL) &&
+                    (drv->_cfg->recv_error_cb(NULL) == 0)) {
+                } else {
+                    // return to idle state
+                    drv->_state = RFM12B_IDLE;
+                }
+                chSemSignal(&drv->_sem);
+                break;
+            case RFM12B_TX_INIT:
+                // enable hardware crc
+                RCC->AHBENR |= RCC_AHBENR_CRCEN;
+                // switch to tx mode
+                rfm12b_lld_status(drv);
+                rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
+                                 RFM12B_CONFIGURATION_BAND868_TX);
+                rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
+                                 RFM12B_POWER_MANAGEMENT_TX_MODE);
+                // reset hardware crc
+                CRC->CR = (uint32_t)0x01;
+                //
+                drv->_buff_cnt = 0;
+                drv->_state = RFM12B_TX_ACTIVE;
+                consoleDebug("RFM12BThread(RFM12B_TX_INIT)\r\n");
+                break;
+            case RFM12B_TX_ACTIVE:
+                break;
+            case RFM12B_TX_COMPLETE:
+                // disable hardware crc
+                RCC->AHBENR &= ~RCC_AHBENR_CRCEN;
+                //
+                rfm12b_lld_status(drv);
+                rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
+                                 RFM12B_CONFIGURATION_BAND868_TX);
+                rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
+                                 RFM12B_POWER_MANAGEMENT_IDLE_MODE);
+                consoleDebug("RFM12BThread(RFM12B_TX_COMPLETE)\r\n");
+                // run call back
+                if ((drv->_cfg->send_done_cb != NULL) &&
+                    (drv->_cfg->send_done_cb(NULL) == 0)) {
+                } else {
+                    // return to idle state
+                    drv->_state = RFM12B_IDLE;
+                }
+                chSemSignal(&drv->_sem);
+                break;
+            case RFM12B_TX_ERROR:
+                rfm12b_lld_status(drv);
+                consoleDebug("RFM12BThread(RFM12B_TX_ERROR)\r\n");
+                if ((drv->_cfg->send_error_cb != NULL) &&
+                    (drv->_cfg->send_error_cb(NULL) == 0)) {
+                } else {
+                    // return to idle state
+                    drv->_state = RFM12B_IDLE;
+                }
+                chSemSignal(&drv->_sem);
+                break;
         }
     }
-    // initialize hardware crc
-    RCC->AHBENR |= RCC_AHBENR_CRCEN;
     //
-    i = 0;
-    drv->buffer[i++] = 0xAA;
-    drv->buffer[i++] = 0xAA;
-    drv->buffer[i++] = 0xAA;
-    drv->buffer[i++] = 0x2D;
-    drv->buffer[i++] = drv->config->group_id;
-    drv->buffer[i++] = packet->dst;
-    drv->buffer[i++] = packet->src;
-    drv->buffer[i++] = packet->cmd;
-    drv->buffer[i++] = packet->param;
-    // reset crc32 and write first data
-    CRC->CR = (uint32_t)0x01;
-    CRC->DR = (packet->dst << 24) +
-              (packet->src << 16) +
-              (packet->cmd << 8) +
-              packet->param;
-#if RADIO_PACKET_DATA_SIZE > 0
-    crc = 0;
-    //
-    for (j = 0; j < sizeof(packet->data); j++) {
-        drv->buffer[i++] = packet->data[j];
-        crc <<= 8;
-        crc += packet->data[j];
-        if (j % 3 == 0) {
-            CRC->DR = crc;
-        }
-    }
-#endif
-    // read crc from hardware and disable crc module
-    // XXX in case of crc errors please check this crc32 timing
-    crc = CRC->DR;
-    RCC->AHBENR &= ~RCC_AHBENR_CRCEN;
-    // add crc to send data
-    drv->buffer[i++] = (crc >> 24) & 0xFF;
-    drv->buffer[i++] = (crc >> 16) & 0xFF;
-    drv->buffer[i++] = (crc >> 8) & 0xFF;
-    drv->buffer[i++] = crc & 0xFF;
-    // send postamble
-    drv->buffer[i++] = 0xAA;
-    drv->buffer[i++] = 0xAA;
-    drv->buffer[i++] = 0xAA;
-    // start transmission
-    rfm12b_lld_status(drv);
-    chSemReset(&drv->semaphore, 0);
-    drv->counter = 0;
-    drv->state = RFM12B_ACTIVE_TX;
-    rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
-                     RFM12B_CONFIGURATION_BAND868_TX);
-    rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
-                     RFM12B_POWER_MANAGEMENT_TX_MODE);
-    if (chSemWaitTimeout(&drv->semaphore, MS2ST(10)) != RDY_OK) {
-        rfm12b_lld_idle(drv);
-        consoleWarn("rfm12b_lld_send timeout sending data\r\n");
-        return false;
-    }
-    consoleDebug("rfm12b_lld_send end\r\n");
-    // switch to sleep mode
-    rfm12b_lld_idle(drv);
-    //
+    chThdExit(1);
+}
+
+/*
+ * @brief   rfm12b ...
+ */
+bool rfm12bRecvStart(RFM12BDriver *drv) {
+    // make sure no-one will interrupt
+    chSysLock();
+    drv->_state = RFM12B_RX_INIT;
+    chSemSignalI(&drv->_sem);
+    chSysUnlock();
     return true;
 }
 
 /*
  * @brief   rfm12b ...
  */
-bool rfm12b_lld_recv(RFM12BDriver *drv, radio_packet_t *packet) {
+bool rfm12bSendStart(RFM12BDriver *drv) {
     //
-    (void)drv;
-    (void)packet;
-    //
-    uint32_t crc, crc_recv;
-    uint8_t i, j;
-    //
-    consoleDebug("rfm12b_lld_recv start\r\n");
-    // frequency hopping
-    if (drv->config->freq_step != 0) {
-        rfm12b_lld_write(drv, RFM12B_FREQUENCY,
-                         drv->config->base_freq + drv->config->freq_step * drv->config->freq_chan);
-        if (drv->config->freq_chan++ > 8) {
-            drv->config->freq_chan = 0;
-        }
-    }
-    // prepare variables
-    chSemReset(&drv->semaphore, 0);
-    drv->counter = 0;
-    // clear all interrupts
-    rfm12b_lld_status(drv);
-    drv->state = RFM12B_ACTIVE_RX;
-    // enter rx mode
-    rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
-                     RFM12B_CONFIGURATION_BAND868_RX);
-    rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
-                     RFM12B_POWER_MANAGEMENT_RX_MODE);
-    // reset fifo
-    rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0x0081); // synchro 1-st
-    rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0x0083); // synchro 1-st
-    if (chSemWaitTimeout(&drv->semaphore,
-                         MS2ST(drv->config->rx_timeout)) != RDY_OK) {
-        rfm12b_lld_idle(drv);
-        consoleWarn("rfm12b_lld_recv timeout\r\n");
-        return false;
-    }
-    // enable crc32, timing is important here
-    RCC->AHBENR |= RCC_AHBENR_CRCEN;
-    // we start at one this time
-    i = 1;
-    // get values
-    packet->dst = drv->buffer[i++];
-    packet->src = drv->buffer[i++];
-    packet->cmd = drv->buffer[i++];
-    packet->param = drv->buffer[i++];
-    // initialize hardware crc
-    CRC->CR = (uint32_t)0x01;
-    CRC->DR = (packet->dst << 24) +
-              (packet->src << 16) +
-              (packet->cmd << 8) +
-              packet->param;
-    crc = 0;
-    //
-    for (j = 0; j < sizeof(packet->data); j++ ) {
-        packet->data[j] = drv->buffer[i++];
-        // TODO calculate crc
-        crc <<= 8;
-        crc += packet->data[j];
-        if (j % 3 == 0) {
-            CRC->DR = crc;
-        }
-    }
-    // get received CRC
-    crc_recv = (drv->buffer[i++] << 24);
-    crc_recv += (drv->buffer[i++] << 16);
-    crc_recv += (drv->buffer[i++] << 8);
-    crc_recv += drv->buffer[i++];
-    // read crc from hardware and disable clock
-    crc = CRC->DR;
-    RCC->AHBENR &= ~RCC_AHBENR_CRCEN;
-    //
-    if (crc != crc_recv) {
-        rfm12b_lld_idle(drv);
-        consoleWarn("rfm12b_lld_recv crc mismatch\r\n");
-        return false;
-    }
-    consoleDebug("rfm12b_lld_recv end\r\n");
-    rfm12b_lld_idle(drv);
-    //
+    uint8_t i;
+    // make sure no-one will interrupt now
+    chSysLock();
+    // prepare data to send
+    i = 0;
+    drv->buffer[i++] = 0xAA;
+    drv->buffer[i++] = 0xAA;
+    drv->buffer[i++] = 0xAA;
+    drv->buffer[i++] = 0xAA;
+    drv->buffer[i++] = 0x2D;
+    drv->buffer[i++] = drv->_cfg->group_id;
+    drv->buffer[i++] = 0x56;
+    drv->buffer[i++] = 0x78;
+    drv->buffer[i++] = 0x9A;
+    drv->buffer[i++] = 0xBC;
+    // signal thread to start work
+    drv->_state = RFM12B_TX_INIT;
+    chSemSignalI(&drv->_sem);
+    // release lock
+    chSysUnlock();
     return true;
 }
 
@@ -588,11 +662,11 @@ bool rfm12b_lld_init(RFM12BDriver *drv, RFM12BConfig *config) {
     //
     consoleDebug("rfm12b_lld_init start\r\n");
     //
-    drv->state = RFM12B_UNINIT;
-    drv->config = config;
-    chSemInit(&drv->semaphore, 0);
+    drv->_state = RFM12B_UNINIT;
+    drv->_cfg = config;
+    chSemInit(&drv->_sem, 0);
     //
-    if (drv->config->ext_drv->state != EXT_ACTIVE) {
+    if (drv->_cfg->ext_drv->state != EXT_ACTIVE) {
         consoleDebug("rfm12b_lld_init EXT driver not started\r\n");
         return false;
     }
@@ -602,6 +676,9 @@ bool rfm12b_lld_init(RFM12BDriver *drv, RFM12BConfig *config) {
         !rfm12b_lld_init_setup(drv)) {
         return false;
     }
+    //
+    chThdCreateStatic(&drv->_wa, sizeof(drv->_wa),
+                      NORMALPRIO + drv->_cfg->priority, (tfunc_t)RFM12BThread, drv);
     //
     consoleDebug("rfm12b_lld_init end\r\n");
     //

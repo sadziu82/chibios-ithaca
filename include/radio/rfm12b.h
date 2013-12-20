@@ -23,6 +23,11 @@
  * @brief   ...
  * @details ...
  */
+typedef msg_t(* radio_packet_callback_t)(radio_packet_t *rf_packet);
+/*
+ * @brief   ...
+ * @details ...
+ */
 typedef struct {
     // spi driver
     SPIDriver *spi_drv;
@@ -44,8 +49,15 @@ typedef struct {
     uint16_t freq_step;
     uint8_t data_rate;
     //
-    uint16_t rx_timeout;
+    uint16_t recv_timeout;
     uint8_t freq_chan;
+    int8_t priority;
+    //
+    radio_packet_callback_t idle_cb;
+    radio_packet_callback_t recv_done_cb;
+    radio_packet_callback_t recv_error_cb;
+    radio_packet_callback_t send_done_cb;
+    radio_packet_callback_t send_error_cb;
 } RFM12BConfig;
 
 /*
@@ -56,9 +68,15 @@ typedef enum {
     RFM12B_UNINIT = 0,
     RFM12B_STOP,
     RFM12B_IDLE,
-    RFM12B_IDLE_RX,
-    RFM12B_ACTIVE_RX,
-    RFM12B_ACTIVE_TX,
+    RFM12B_RX_INIT,
+    RFM12B_RX_WAIT,
+    RFM12B_RX_ACTIVE,
+    RFM12B_RX_COMPLETE,
+    RFM12B_RX_ERROR,
+    RFM12B_TX_INIT,
+    RFM12B_TX_ACTIVE,
+    RFM12B_TX_COMPLETE,
+    RFM12B_TX_ERROR,
 } rfm12b_state_t;
 
 /*
@@ -93,14 +111,16 @@ typedef enum {
  * @details ...
  */
 typedef struct {
-    // rfm12b state
-    rfm12b_state_t state;
-    Semaphore semaphore;
-    uint8_t counter;
+    uint8_t _buff_cnt;
     uint8_t buffer[sizeof(radio_packet_t) + 12];
     uint16_t txrx_data;
-    // rfm12b configuration
-    RFM12BConfig *config;
+    systime_t _tmout;
+    //
+    RFM12BConfig *_cfg;
+    WORKING_AREA(_wa, 512);
+    //
+    rfm12b_state_t _state;
+    Semaphore _sem;
     // ext channel config
     EXTChannelConfig nirq_cfg;
 } RFM12BDriver;
@@ -123,6 +143,9 @@ extern "C" {
 bool rfm12b_lld_init(RFM12BDriver *drv, RFM12BConfig *config);
 bool rfm12b_lld_send(RFM12BDriver *drv, radio_packet_t *packet);
 bool rfm12b_lld_recv(RFM12BDriver *drv, radio_packet_t *packet);
+
+bool rfm12bSendStart(RFM12BDriver *drv);
+bool rfm12bRecvStart(RFM12BDriver *drv);
 #ifdef __cplusplus
 }
 #endif

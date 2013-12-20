@@ -32,6 +32,7 @@
 
 #include <radio/packet.h>
 #include <radio/rfm12b.h>
+#include <radio/mesh.h>
 #include <radio/rc.h>
 
 /*===========================================================================*/

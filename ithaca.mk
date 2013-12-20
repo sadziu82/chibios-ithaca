@@ -21,6 +21,7 @@ CSRC += $(ITHACA)/src/misc/device_id.c \
         $(ITHACA)/src/misc/imu.c \
         $(ITHACA)/src/radio/packet.c \
         $(ITHACA)/src/radio/rfm12b.c \
+        $(ITHACA)/src/radio/mesh.c \
         $(ITHACA)/src/radio/rc.c \
         $(ITHACA)/src/ithaca.c
 
