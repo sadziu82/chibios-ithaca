@@ -8,7 +8,7 @@ CSRC += $(ITHACA)/src/misc/device_id.c \
         $(ITHACA)/src/misc/button.c \
         $(ITHACA)/src/misc/digital_output.c \
         $(ITHACA)/src/misc/hcsr501.c \
-        $(ITHACA)/src/misc/keypad.c \
+        $(ITHACA)/src/misc/keypad44.c \
         $(ITHACA)/src/misc/mono_timer.c \
         $(ITHACA)/src/misc/pca9633.c \
         $(ITHACA)/src/misc/console.c \

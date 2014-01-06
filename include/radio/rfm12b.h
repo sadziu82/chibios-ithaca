@@ -20,10 +20,18 @@
 /*===========================================================================*/
 
 /*
+ * @brief   Just forward declaration.
+ */
+typedef struct RFM12BDriver RFM12BDriver;
+
+/*
  * @brief   ...
  * @details ...
  */
-typedef msg_t(* radio_packet_callback_t)(radio_packet_t *rf_packet);
+typedef void(* radio_callback_t)(RFM12BDriver *drv,
+                                  radio_packet_t *rf_packet,
+                                  void *arg);
+
 /*
  * @brief   ...
  * @details ...
@@ -53,11 +61,11 @@ typedef struct {
     uint8_t freq_chan;
     int8_t priority;
     //
-    radio_packet_callback_t idle_cb;
-    radio_packet_callback_t recv_done_cb;
-    radio_packet_callback_t recv_error_cb;
-    radio_packet_callback_t send_done_cb;
-    radio_packet_callback_t send_error_cb;
+    radio_callback_t idle_cb;
+    radio_callback_t recv_done_cb;
+    radio_callback_t recv_error_cb;
+    radio_callback_t send_done_cb;
+    radio_callback_t send_error_cb;
 } RFM12BConfig;
 
 /*
@@ -69,14 +77,12 @@ typedef enum {
     RFM12B_STOP,
     RFM12B_IDLE,
     RFM12B_RX_INIT,
-    RFM12B_RX_WAIT,
+    RFM12B_RX_START,
     RFM12B_RX_ACTIVE,
     RFM12B_RX_COMPLETE,
-    RFM12B_RX_ERROR,
     RFM12B_TX_INIT,
     RFM12B_TX_ACTIVE,
     RFM12B_TX_COMPLETE,
-    RFM12B_TX_ERROR,
 } rfm12b_state_t;
 
 /*
@@ -110,17 +116,20 @@ typedef enum {
  * @brief   ...
  * @details ...
  */
-typedef struct {
-    uint8_t _buff_cnt;
-    uint8_t buffer[sizeof(radio_packet_t) + 12];
+typedef struct RFM12BDriver {
+    uint8_t txrx_counter;
+    uint8_t txrx_buff[sizeof(radio_packet_t) + 12];
     uint16_t txrx_data;
-    systime_t _tmout;
+    systime_t task_tmout;
+    void *arg;
     //
-    RFM12BConfig *_cfg;
-    WORKING_AREA(_wa, 512);
+    RFM12BConfig *config;
+    WORKING_AREA(_wa, 256);
     //
-    rfm12b_state_t _state;
-    Semaphore _sem;
+    rfm12b_state_t state;
+    bool error;
+    BinarySemaphore flag;
+    lld_lock_t lock;
     // ext channel config
     EXTChannelConfig nirq_cfg;
 } RFM12BDriver;
@@ -140,12 +149,12 @@ extern RFM12BDriver RFM12BD1;
 extern "C" {
 #endif
 //
-bool rfm12b_lld_init(RFM12BDriver *drv, RFM12BConfig *config);
-bool rfm12b_lld_send(RFM12BDriver *drv, radio_packet_t *packet);
-bool rfm12b_lld_recv(RFM12BDriver *drv, radio_packet_t *packet);
+bool rfm12bInit(RFM12BDriver *drv, RFM12BConfig *config, void *arg);
 
-bool rfm12bSendStart(RFM12BDriver *drv);
-bool rfm12bRecvStart(RFM12BDriver *drv);
+bool rfm12bRecvStart(RFM12BDriver *drv, void *arg);
+void rfm12bRecvStartS(RFM12BDriver *drv, void *arg);
+bool rfm12bSendStart(RFM12BDriver *drv, radio_packet_t *packet, void *arg);
+void rfm12bSendStartS(RFM12BDriver *drv, radio_packet_t *packet, void *arg);
 #ifdef __cplusplus
 }
 #endif

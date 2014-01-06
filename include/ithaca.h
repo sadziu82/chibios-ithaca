@@ -9,6 +9,16 @@
 
 #if ITHACA_USE_LIB || defined(__DOXYGEN__)
 
+/*
+ * @brief   ...
+ * @details ...
+ */
+typedef struct {
+    // ...
+    char *name;
+    bool flag;
+} lld_lock_t;
+
 #include <misc/device_id.h>
 
 #include <misc/console.h>
@@ -20,7 +30,7 @@
 #include <misc/button.h>
 #include <misc/digital_output.h>
 #include <misc/hcsr501.h>
-#include <misc/keypad.h>
+#include <misc/keypad44.h>
 #include <misc/mono_timer.h>
 #include <misc/pca9633.h>
 
@@ -62,6 +72,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+//
+bool lldLock(lld_lock_t *lock);
+bool lldLockWaitTimeout(lld_lock_t *lock, systime_t tm);
+void lldUnlock(lld_lock_t *lock);
+bool lldLockISR(lld_lock_t *lock);
+void lldUnlockISR(lld_lock_t *lock);
+//
 extern EXTConfig EXTCFG1;
 #ifdef __cplusplus
 }

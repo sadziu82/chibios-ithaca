@@ -91,7 +91,7 @@
  * PB15 - spi2 mosi
  */
 #define VAL_GPIOBCRL            0x88888888      /*  PB7...PB0 */
-#define VAL_GPIOBCRH            0xBBB383BB      /* PB15...PB8 */
+#define VAL_GPIOBCRH            0xBBB383FF      /* PB15...PB8 */
 #define VAL_GPIOBODR            0xFFFFFFFF
 
 /*

@@ -1,6 +1,6 @@
 #include <ithaca.h>
 
-#if ITHACA_USE_KEYPAD || defined(__DOXYGEN__)
+#if ITHACA_USE_KEYPAD44 || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
@@ -26,21 +26,43 @@
  * @brief   ...
  * @details ...
  */
-bool keypadRefresh(keypad_t *keypad, varg_t arg) {
+bool keypad44Init(keypad44_t *keypad44, uint16_t press_delay,
+                  uint16_t auto_repeat_delay) {
     uint8_t i, j;
-    // FIXME move to init
-    // for (i = 0; i < 4; i++) {
-    //     palSetPad(keypad->in[i].port, keypad->in[i].pin);
-    // }
     for (i = 0; i < 4; i++) {
-        palClearPad(keypad->out[i].port, keypad->out[i].pout);
         for (j = 0; j < 4; j++) {
-            keypad->pad[i << 2 + j] = palReadpad(keypad->in[j].port, keypad->in[j].pin);
+            buttonInit(&keypad44->buttons[i + j*4],
+                       keypad44->in[j].port, keypad44->in[j].pin,
+                       press_delay, auto_repeat_delay, false);
         }
-        palSetPad(keypad->out[i].port, keypad->out[i].pout);
     }
+    for (j = 0; j < 4; j++) {
+        palSetPadMode(keypad44->in[j].port, keypad44->in[j].pin, PAL_MODE_INPUT_PULLUP);
+    }
+    for (i = 0; i < 4; i++) {
+        palSetPadMode(keypad44->out[i].port, keypad44->out[i].pin, PAL_MODE_OUTPUT_PUSHPULL);
+    }
+    //
+    return true;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+bool keypad44Refresh(keypad44_t *keypad, varg_t arg) {
+    uint8_t i, j;
+    (void)arg;
+    for (i = 0; i < 4; i++) {
+        palClearPad(keypad->out[i].port, keypad->out[i].pin);
+        for (j = 0; j < 4; j++) {
+            buttonRefresh(&keypad->buttons[i + j*4], NULL);
+        }
+        palSetPad(keypad->out[i].port, keypad->out[i].pin);
+    }
+    return true;
 }
 
 
-#endif /* ITHACA_USE_KEYPAD */
+#endif /* ITHACA_USE_KEYPAD44 */
 
