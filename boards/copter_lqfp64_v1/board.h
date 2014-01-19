@@ -59,12 +59,16 @@
 /*
  * Port A setup.
  * Everything input with pull-up except:
+ * PA0  - tim2: ch1
+ * PA1  - tim2: ch2
+ * PA2  - tim2: ch3
+ * PA3  - tim2: ch4
  * PA4  - lcd ce
  * PA5  - lcd rs/dc
  * PA6  - lcd rst
  * PA7  - lcd pwm
  */
-#define VAL_GPIOACRL            0x33338888      /*  PA7...PA0 */
+#define VAL_GPIOACRL            0x3333BBBB      /*  PA7...PA0 */
 #define VAL_GPIOACRH            0x88888888      /* PA15...PA8 */
 #define VAL_GPIOAODR            0xFFFFFFFF
 
@@ -90,10 +94,10 @@
 /*
  * Port C setup.
  * Everything input with pull-up except:
- * PC0  - adc0
- * PC1  - adc1
- * PC2  - adc2
- * PC3  - adc3
+ * PC0  - adc3: in0
+ * PC1  - adc3: in1
+ * PC2  - adc3: in2
+ * PC3  - adc3: in3
  * PC10 - bt: usart3 tx (remap)
  * PC11 - bt: usart3 rx (remap)
  * PC13 - joy left
