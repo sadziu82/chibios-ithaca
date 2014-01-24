@@ -7,6 +7,8 @@
 /* Driver constants.                                                         */
 /*===========================================================================*/
 
+#define PCA9633_SEQUENCE_MAX_CHANNELS 4
+
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
@@ -161,8 +163,30 @@ typedef struct {
 /*
  * @brief   ...
  */
+typedef struct pca9633_sequence_data_t pca9633_sequence_data_t;
+
+/*
+ * @brief   ...
+ */
+struct pca9633_sequence_data_t {
+    pca9633_sequence_data_t *next;
+    uint8_t data[];
+};
+
+/*
+ * @brief   ...
+ */
 typedef struct {
-    pca9633_channel_t *channel;
+    uint8_t channel_number;
+    pca9633_channel_t *channel[PCA9633_SEQUENCE_MAX_CHANNELS];
+    systime_t timestamp;
+    uint16_t position;
+    uint16_t period;
+    pca9633_sequence_data_t *cur_seq;
+    uint16_t sleep_timeout;
+    pca9633_sequence_data_t *sleep_seq;
+    systime_t sleep_start;
+    lld_lock_t lock;
 } pca9633_sequence_t;
 
 /*===========================================================================*/
@@ -187,6 +211,11 @@ pca9633_channel_status_t pca9633ChannelSwitchSet(pca9633_channel_t *channel,
                                                  uint32_t state);
 pca9633_channel_status_t pca9633ChannelUpdate(pca9633_channel_t *channel,
                                               varg_t unused);
+void pca9633SequenceInit(pca9633_sequence_t *sequence);
+void pca9633SequenceUpdate(pca9633_sequence_t *sequence, varg_t unused);
+bool pca9633SequenceSet(pca9633_sequence_t *sequence,
+                        pca9633_sequence_data_t *seq);
+bool pca9633SequenceActivateSleep(pca9633_sequence_t *sequence);
     ////bool pca9633SleepReset(pca9633_t *pca, varg_t unused);
     ////bool pca9633SleepActivate(pca9633_t *pca, varg_t unused);
     ////color_t pca9633AdvanceSequence(pca9633_t *pca);
