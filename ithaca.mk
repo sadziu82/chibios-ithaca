@@ -11,6 +11,8 @@ CSRC += $(ITHACA)/src/misc/device_id.c \
         $(ITHACA)/src/misc/keypad44.c \
         $(ITHACA)/src/misc/mono_timer.c \
         $(ITHACA)/src/misc/pca9633.c \
+        $(ITHACA)/src/misc/lm75ad.c \
+        $(ITHACA)/src/misc/dht11.c \
         $(ITHACA)/src/misc/console.c \
         $(ITHACA)/src/misc/rung.c \
         $(ITHACA)/src/misc/ladder.c \

@@ -410,6 +410,12 @@ void pca9633SequenceUpdate(pca9633_sequence_t *sequence, varg_t unused) {
         if (sequence->timestamp < chTimeNow()) {
             switch (sequence->cur_seq->data[sequence->position]) {
                 case 0x00:
+                    if (sequence->cur_seq != NULL) {
+                        lldUnlock(&sequence->lock);
+                        pca9633SequenceSet(sequence, NULL);
+                        consoleDebug("pca9633SequenceUpdate empty sequence\r\n");
+                        return;
+                    }
                     break;
                 case 0xFF:
                     if (sequence->cur_seq->next != NULL) {

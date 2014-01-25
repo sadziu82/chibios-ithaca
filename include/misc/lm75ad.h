@@ -1,52 +1,7 @@
-#ifndef _ITHACA_H_
-#define _ITHACA_H_
+#ifndef _LM75AD_H_
+#define _LM75AD_H_
 
-
-#include "ch.h"
-#include "hal.h"
-
-#include "ithacaconf.h"
-
-#if ITHACA_USE_LIB || defined(__DOXYGEN__)
-
-/*
- * @brief   ...
- * @details ...
- */
-typedef struct {
-    // ...
-    char *name;
-    bool flag;
-} lld_lock_t;
-
-#include <misc/device_id.h>
-
-#include <misc/console.h>
-
-#include <misc/block.h>
-#include <misc/rung.h>
-#include <misc/ladder.h>
-
-#include <misc/button.h>
-#include <misc/digital_output.h>
-#include <misc/hcsr501.h>
-#include <misc/keypad44.h>
-#include <misc/mono_timer.h>
-
-#include <misc/pca9633.h>
-#include <misc/lm75ad.h>
-#include <misc/dht11.h>
-
-#include <misc/font.h>
-#include <misc/font_std.h>
-#include <misc/lcd_st7735.h>
-
-#include <misc/imu.h>
-
-#include <radio/packet.h>
-#include <radio/rfm12b.h>
-#include <radio/mesh.h>
-#include <radio/rc.h>
+#if ITHACA_USE_LM75AD || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -64,6 +19,36 @@ typedef struct {
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
 
+/*
+ * @brief   ...
+ */
+typedef enum {
+    LM75AD_REGISTER_TEMP = 0x00,
+} lm75ad_register_t;
+
+/*
+ * @brief   ...
+ */
+typedef enum {
+    LM75AD_UNINIT = 0,
+    LM75AD_READY,
+    LM75AD_ERROR,
+} lm75ad_status_t;
+ 
+/*
+ * @brief   ...
+ */
+typedef struct {
+    char *desc;
+    I2CDriver *i2c_driver;
+    uint8_t i2c_addr;
+    lm75ad_status_t status;
+    systime_t refresh_time;
+    uint16_t refresh_period;
+    int8_t temp;
+} lm75ad_t;
+
+
 /*===========================================================================*/
 /* Driver macros.                                                            */
 /*===========================================================================*/
@@ -72,22 +57,18 @@ typedef struct {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-//
-bool lldLock(lld_lock_t *lock);
-bool lldLockWaitTimeout(lld_lock_t *lock, systime_t tm);
-void lldUnlock(lld_lock_t *lock);
-bool lldLockISR(lld_lock_t *lock);
-void lldUnlockISR(lld_lock_t *lock);
-//
-extern EXTConfig EXTCFG1;
+lm75ad_status_t lm75adInit(lm75ad_t *sensor);
+bool lm75adRefreshTemp(lm75ad_t *sensor, varg_t unused);
+bool lm75adGetTemperature(lm75ad_t *sensor, int8_t *temp);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ITHACA_USE_LIB */
+#endif /* ITHACA_USE_LM75AD */
 
-#endif /* _ITHACA_H_ */
+#endif /* _LM75AD_H_ */
 
