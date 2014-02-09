@@ -32,31 +32,25 @@ MeshDriver MESHD1 = {
 /*
  * @brief   mesh idle callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_mesh_idle_cb(RFM12BDriver *drv,
+void radio_mesh_idle_cb(RadioDriver *radio,
                    radio_packet_t *rf_packet,
                    void *arg) {
-#endif
     (void)rf_packet;
     MeshDriver *meshp = (MeshDriver *)arg;
     lldLock(&meshp->lock);
     // start next receive
     consoleDebug("Mesh(radio_mesh_idle_cb)\r\n");
     meshp->state = MESH_RX;
-#ifdef ITHACA_USE_RADIO_RFM12B
-    rfm12bRecvStartS(drv, arg);
-#endif
+    radioRecvStartS(radio, arg);
     lldUnlock(&meshp->lock);
 }
 
 /*
  * @brief   mesh recv callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_mesh_recv_done_cb(RFM12BDriver *drv,
+void radio_mesh_recv_done_cb(RadioDriver *radio,
                         radio_packet_t *rf_packet,
                         void *arg) {
-#endif
     //
     (void)rf_packet;
     MeshDriver *meshp = (MeshDriver *)arg;
@@ -71,16 +65,13 @@ void radio_mesh_recv_done_cb(RFM12BDriver *drv,
             meshp->mesh_packet.target_id = meshp->mesh_packet.sender_id;
             meshp->mesh_packet.sender_id = meshp->config->node_id;
             consoleDebug("Mesh(radio_mesh_recv_done_cb) MESH_RX got packet\r\n");
-#ifdef ITHACA_USE_RADIO_RFM12B
             // allow remote side to switch from tx to rx
-            chThdSleepMilliseconds(2);
-            rfm12bSendStartS(drv, (radio_packet_t *)&meshp->mesh_packet, arg);
-#endif
+            // move to low-lever driver: chThdSleepMilliseconds(2);
+            radioSendRecvPeerDelay(radio);
+            radioSendStartS(radio, (radio_packet_t *)&meshp->mesh_packet, arg);
         } else {
             consoleDebug("Mesh(radio_mesh_recv_done_cb) MESH_RX ignoring packet\r\n");
-#ifdef ITHACA_USE_RADIO_RFM12B
-            rfm12bRecvStartS(drv, arg);
-#endif
+            radioRecvStartS(radio, arg);
         }
     } else if (meshp->state == MESH_TX) {
         if (meshp->mesh_packet.target_id == meshp->config->node_id) {
@@ -92,10 +83,8 @@ void radio_mesh_recv_done_cb(RFM12BDriver *drv,
             consoleDebug("Mesh(radio_mesh_recv_done_cb) MESH_TX ignoring packet\r\n");
         }
         meshp->state = MESH_RX;
-#ifdef ITHACA_USE_RADIO_RFM12B
-        drv->config->recv_timeout = 0;
-        rfm12bRecvStartS(drv, arg);
-#endif
+        radioSetRecvTimeout(radio, 0);
+        radioRecvStartS(radio, arg);
     }
     lldUnlock(&meshp->lock);
 }
@@ -103,21 +92,17 @@ void radio_mesh_recv_done_cb(RFM12BDriver *drv,
 /*
  * @brief   mesh recv callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_mesh_recv_error_cb(RFM12BDriver *drv,
+void radio_mesh_recv_error_cb(RadioDriver *radio,
                           radio_packet_t *rf_packet,
                           void *arg) {
-#endif
     (void)rf_packet;
     MeshDriver *meshp = (MeshDriver *)arg;
     if (lldLock(&meshp->lock) == true) {
         // start next receive
         consoleDebug("Mesh(radio_mesh_recv_error_cb)\r\n");
         meshp->state = MESH_RX;
-#ifdef ITHACA_USE_RADIO_RFM12B
-        drv->config->recv_timeout = 0;
-        rfm12bRecvStartS(drv, arg);
-#endif
+        radioSetRecvTimeout(radio, 0);
+        radioRecvStartS(radio, arg);
         lldUnlock(&meshp->lock);
     }
 }
@@ -125,24 +110,18 @@ void radio_mesh_recv_error_cb(RFM12BDriver *drv,
 /*
  * @brief   mesh send callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_mesh_send_done_cb(RFM12BDriver *drv,
+void radio_mesh_send_done_cb(RadioDriver *radio,
                          radio_packet_t *rf_packet,
                          void *arg) {
-#endif
     (void)rf_packet;
     MeshDriver *meshp = (MeshDriver *)arg;
     if (lldLock(&meshp->lock) == true) {
         if (meshp->state == MESH_TX) {
-#ifdef ITHACA_USE_RADIO_RFM12B
-            drv->config->recv_timeout = 50;
-#endif
+            radioSetRecvTimeout(radio, 50);
         }
         consoleDebug("Mesh(radio_mesh_send_done_cb)\r\n");
         // start next receive
-#ifdef ITHACA_USE_RADIO_RFM12B
-        rfm12bRecvStartS(drv, arg);
-#endif
+        radioRecvStartS(radio, arg);
         lldUnlock(&meshp->lock);
     }
 }
@@ -150,20 +129,16 @@ void radio_mesh_send_done_cb(RFM12BDriver *drv,
 /*
  * @brief   mesh send callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_mesh_send_error_cb(RFM12BDriver *drv,
+void radio_mesh_send_error_cb(RadioDriver *radio,
                           radio_packet_t *rf_packet,
                           void *arg) {
-#endif
     (void)rf_packet;
     MeshDriver *meshp = (MeshDriver *)arg;
     if (lldLock(&meshp->lock) == true) {
         // start next receive
         consoleDebug("Mesh(radio_mesh_send_error_cb)\r\n");
         meshp->state = MESH_RX;
-#ifdef ITHACA_USE_RADIO_RFM12B
-        rfm12bRecvStartS(drv, arg);
-#endif
+        radioRecvStartS(radio, arg);
         lldUnlock(&meshp->lock);
     }
 }
@@ -190,9 +165,7 @@ bool meshInit(MeshDriver *meshp, MeshConfig *config) {
     meshp->state = MESH_STOP;
     chSysUnlock();
     lldLock(&meshp->lock);
-#ifdef ITHACA_USE_RADIO_RFM12B
-    rfm12bInit(meshp->config->radio_drv, meshp->config->radio_cfg, meshp);
-#endif
+    radioInit(meshp->config->radio_drv, meshp->config->radio_cfg, meshp);
     lldUnlock(&meshp->lock);
     //
     consoleDebug("meshInit end\r\n");
@@ -216,9 +189,7 @@ bool meshStart(MeshDriver *meshp) {
         return false;
     }
     //
-#ifdef ITHACA_USE_RADIO_RFM12B
-    rfm12bRecvStart(meshp->config->radio_drv, meshp);
-#endif
+    radioRecvStart(meshp->config->radio_drv, meshp);
     consoleDebug("meshStart end\r\n");
     meshp->state = MESH_RX;
     lldUnlock(&meshp->lock);
@@ -254,11 +225,9 @@ bool meshSend(MeshDriver *meshp, mesh_packet_t *mesh_packet) {
     memcpy(&meshp->mesh_packet, mesh_packet, sizeof(mesh_packet_t));
     meshp->mesh_packet.sender_id = meshp->config->node_id;
     meshp->state = MESH_TX;
-#ifdef ITHACA_USE_RADIO_RFM12B
-    rfm12bSendStart(meshp->config->radio_drv,
+    radioSendStart(meshp->config->radio_drv,
                     (radio_packet_t *)&meshp->mesh_packet,
                     meshp);
-#endif
     consoleDebug("meshSend end\r\n");
     lldUnlock(&meshp->lock);
     return true;

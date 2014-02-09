@@ -14,26 +14,13 @@
  * @brief   ...
  * @details ...
  */
-EXTConfig EXTCFG1 = {
-    {
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-        {EXT_CH_MODE_DISABLED, NULL},
-    },
-};
+EXTConfig ext1_cfg;
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void *ext1_ptr[EXT_MAX_CHANNELS];
 
 /*===========================================================================*/
 /* Driver local variables and types.                                         */
@@ -50,7 +37,7 @@ EXTConfig EXTCFG1 = {
 /*
  * @brief   
  */
-inline bool lldLock(lld_lock_t *lock) {
+inline bool ithacaLock(ithaca_lock_t *lock) {
     bool locked = false;
     //
     chSysLock();
@@ -68,7 +55,7 @@ inline bool lldLock(lld_lock_t *lock) {
 /*
  * @brief   
  */
-inline bool lldLockWaitTimeout(lld_lock_t *lock, systime_t tm) {
+inline bool ithacaLockTimeout(ithaca_lock_t *lock, systime_t tm) {
     bool locked = false;
     systime_t timeout = chTimeNow() + MS2ST(tm);
     //
@@ -79,10 +66,9 @@ inline bool lldLockWaitTimeout(lld_lock_t *lock, systime_t tm) {
             locked = true;
             chSysUnlock();
             break;
-        } else {
-            chThdYield();
         }
         chSysUnlock();
+        chThdYield();
     }
     if (locked == false) {
         consoleDebug("%s lock wait timeout failed\r\n", lock->name);
@@ -93,7 +79,7 @@ inline bool lldLockWaitTimeout(lld_lock_t *lock, systime_t tm) {
 /*
  * @brief   
  */
-inline void lldUnlock(lld_lock_t *lock) {
+inline void ithacaUnlock(ithaca_lock_t *lock) {
     //
     chSysLock();
     if (lock->flag == true) {
@@ -105,7 +91,7 @@ inline void lldUnlock(lld_lock_t *lock) {
 /*
  * @brief   
  */
-inline bool lldLockISR(lld_lock_t *lock) {
+inline bool ithacaLockISR(ithaca_lock_t *lock) {
     bool locked = false;
     //
     chSysLockFromIsr();
@@ -120,7 +106,7 @@ inline bool lldLockISR(lld_lock_t *lock) {
 /*
  * @brief   
  */
-inline void lldUnlockISR(lld_lock_t *lock) {
+inline void ithacaUnlockISR(ithaca_lock_t *lock) {
     //
     chSysLockFromIsr();
     if (lock->flag == true) {

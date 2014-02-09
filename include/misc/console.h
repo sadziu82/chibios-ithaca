@@ -41,6 +41,16 @@ typedef struct {
  * @brief   ...
  * @details ...
  */
+#if ITHACA_USE_CONSOLE_DEVEL
+#define consoleDevel(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
+#else
+#define consoleDevel(fmt, ...)
+#endif
+
+/*
+ * @brief   ...
+ * @details ...
+ */
 #if ITHACA_USE_CONSOLE_DEBUG
 #define consoleDebug(fmt, ...) consolePrintf(&console, fmt, ##__VA_ARGS__)
 #else

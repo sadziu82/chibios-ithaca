@@ -1,13 +1,13 @@
 #ifndef _ITHACA_H_
 #define _ITHACA_H_
 
-
 #include "ch.h"
 #include "hal.h"
 
 #include "ithacaconf.h"
 
 #if ITHACA_USE_LIB || defined(__DOXYGEN__)
+
 
 /*
  * @brief   ...
@@ -17,7 +17,7 @@ typedef struct {
     // ...
     char *name;
     bool flag;
-} lld_lock_t;
+} ithaca_lock_t;
 
 #include <misc/device_id.h>
 
@@ -44,10 +44,6 @@ typedef struct {
 #include <misc/imu.h>
 
 #include <radio.h>
-#include <radio/packet.h>
-#include <radio/rfm12b.h>
-#include <radio/mesh.h>
-#include <radio/rc.h>
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -77,13 +73,14 @@ typedef struct {
 extern "C" {
 #endif
 //
-bool lldLock(lld_lock_t *lock);
-bool lldLockWaitTimeout(lld_lock_t *lock, systime_t tm);
-void lldUnlock(lld_lock_t *lock);
-bool lldLockISR(lld_lock_t *lock);
-void lldUnlockISR(lld_lock_t *lock);
+bool ithacaLock(ithaca_lock_t *lock);
+bool ithacaLockTimeout(ithaca_lock_t *lock, systime_t tm);
+void ithacaUnlock(ithaca_lock_t *lock);
+bool ithacaLockISR(ithaca_lock_t *lock);
+void ithacaUnlockISR(ithaca_lock_t *lock);
 //
-extern EXTConfig EXTCFG1;
+extern EXTConfig ext1_cfg;
+extern void *ext1_ptr[EXT_MAX_CHANNELS];
 #ifdef __cplusplus
 }
 #endif

@@ -1,7 +1,7 @@
-#ifndef _RADIO_RFM12B_H_
-#define _RADIO_RFM12B_H_
+#ifndef _RADIO_RFM22B_H_
+#define _RADIO_RFM22B_H_
 
-#if ITHACA_USE_RADIO_RFM12B || defined(__DOXYGEN__)
+#if ITHACA_USE_RADIO_RFM22B || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -22,13 +22,13 @@
 /*
  * @brief   Just forward declaration.
  */
-typedef struct RFM12BDriver RFM12BDriver;
+typedef struct RFM22BDriver RFM22BDriver;
 
 /*
  * @brief   ...
  * @details ...
  */
-typedef void(* rfm12b_callback_t)(RFM12BDriver *drv,
+typedef void(* rfm22b_callback_t)(RFM22BDriver *drv,
                                   radio_packet_t *rf_packet,
                                   void *arg);
 
@@ -52,9 +52,7 @@ typedef struct {
     ioportid_t rst_port;
     uint16_t rst_pin;
     // 
-    uint8_t syncword;
-    uint8_t preamble_length;
-    uint8_t postamble_length;
+    uint8_t group_id;
     uint16_t base_freq;
     uint16_t freq_step;
     uint8_t data_rate;
@@ -63,50 +61,29 @@ typedef struct {
     uint8_t freq_chan;
     int8_t priority;
     //
-    rfm12b_callback_t idle_cb;
-    rfm12b_callback_t recv_done_cb;
-    rfm12b_callback_t recv_error_cb;
-    rfm12b_callback_t send_done_cb;
-    rfm12b_callback_t send_error_cb;
-} RFM12BConfig;
+    rfm22b_callback_t idle_cb;
+    rfm22b_callback_t recv_done_cb;
+    rfm22b_callback_t recv_error_cb;
+    rfm22b_callback_t send_done_cb;
+    rfm22b_callback_t send_error_cb;
+} RFM22BConfig;
 
 /*
  * @brief   ...
  * @details ...
  */
 typedef enum {
-    RFM12B_UNINIT = 0,
-    RFM12B_STOP,
-    RFM12B_IDLE,
-    //
-    RFM12B_RX_START,
-    RFM12B_RX_WAIT,
-    RFM12B_RX_DATA,
-    RFM12B_RX_CRC,
-    RFM12B_RX_POSTAMBLE,
-    RFM12B_RX_COMPLETE,
-    //
-    RFM12B_TX_START,
-    RFM12B_TX_PREAMBLE,
-    RFM12B_TX_SYNC1,
-    RFM12B_TX_SYNC2,
-    RFM12B_TX_DATA,
-    RFM12B_TX_CRC,
-    RFM12B_TX_POSTAMBLE,
-    RFM12B_TX_COMPLETE,
-    //
-    RFM12B_RX_ERROR,
-    RFM12B_TX_ERROR,
-} rfm12b_state_t;
-
-/*
- * @brief   ...
- * @details ...
- */
-typedef enum {
-    RFM12B_STEP_READ_STATUS = 0,
-    RFM12B_STEP_NOP,
-} rfm12b_step_t;
+    RFM22B_UNINIT = 0,
+    RFM22B_STOP,
+    RFM22B_IDLE,
+    RFM22B_RX_INIT,
+    RFM22B_RX_START,
+    RFM22B_RX_ACTIVE,
+    RFM22B_RX_COMPLETE,
+    RFM22B_TX_INIT,
+    RFM22B_TX_ACTIVE,
+    RFM22B_TX_COMPLETE,
+} rfm22b_state_t;
 
 /*
  * @brief   ...
@@ -114,39 +91,48 @@ typedef enum {
  */
 typedef enum {
     // combined settings
-    RFM12B_FREQUENCY_876_63 = 0x0CFF,       // 876.63 MHz
-} rfm12b_frequency_t;
+    RFM22B_FREQUENCY_876_63 = 0x0CFF,       // 876.63 MHz
+} rfm22b_frequency_t;
 
 /*
  * @brief   ...
  * @details ...
  */
 typedef enum {
-    RFM12B_DATA_RATE_MAX = 0x01,        // ~172.4 kbps
-    RFM12B_DATA_RATE_115200 = 0x02,        // ~115.2 kbps
-    RFM12B_DATA_RATE_57600 = 0x05,        // ~57.6 kbps
-    RFM12B_DATA_RATE_38400 = 0x08,        // ~38.4 kbps
-    RFM12B_DATA_RATE_19200 = 0x11,        // ~19.2 kbps
-    RFM12B_DATA_RATE_9600 = 0x24,        // ~9.6 kbps
-    RFM12B_DATA_RATE_4800 = 0x47,        // 4.8 kbps
-} rfm12b_data_rate_t;
+    // combined settings
+    RFM22B_DATA_RATE_BR256000 = 0x01,       // ~256000 bps
+    RFM22B_DATA_RATE_BR115200 = 0x02,       // ~115200 bps
+    RFM22B_DATA_RATE_BR57600 = 0x05,        // ~57600 bps
+    RFM22B_DATA_RATE_BR49200 = 0x06,        // ~49200 bps
+    RFM22B_DATA_RATE_BR38400 = 0x08,        // ~38400 bps
+    RFM22B_DATA_RATE_BR19200 = 0x11,        // ~19200 bps
+    RFM22B_DATA_RATE_BR9600 = 0x23,         // ~9600 bps
+    RFM22B_DATA_RATE_BR4800 = 0x47,         // ~4800 bps
+    RFM22B_DATA_RATE_BR2400 = 0x91,         // ~2400 bps
+    RFM22B_DATA_RATE_BR1200 = 0x9E,         // ~1200 bps
+} rfm22b_data_rate_t;
 
 /*
  * @brief   ...
  * @details ...
  */
-typedef struct RFM12BDriver {
-    rfm12b_state_t state;
-    rfm12b_step_t step;
+typedef struct RFM22BDriver {
     uint8_t txrx_counter;
+    uint8_t txrx_buff[sizeof(radio_packet_t) + 12];
     uint16_t txrx_data;
-    SPIConfig spi_cfg;
+    systime_t task_tmout;
+    void *arg;
+    //
+    RFM22BConfig *config;
+    WORKING_AREA(_wa, 256);
+    //
+    rfm22b_state_t state;
+    bool error;
+    BinarySemaphore flag;
+    lld_lock_t lock;
+    // ext channel config
     EXTChannelConfig nirq_cfg;
-    ithaca_lock_t lock;
-    bool spi_xfer_last;
-    uint32_t crc_self;
-    uint32_t crc_recv;
-} RFM12BDriver;
+} RFM22BDriver;
 
 /*===========================================================================*/
 /* Driver macros.                                                            */
@@ -156,21 +142,22 @@ typedef struct RFM12BDriver {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
+//
+extern RFM22BDriver RFM22BD1;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-bool rfm12b_lld_init(RadioDriver *radio);
-void rfm12b_lld_idle(RadioDriver *radio);
-bool rfm12b_lld_is_error(RadioDriver *radio);
-void rfm12b_lld_receive_start(RadioDriver *radio);
-bool rfm12b_lld_receive_is_completed(RadioDriver *radio);
-void rfm12b_lld_send_start(RadioDriver *radio);
-bool rfm12b_lld_send_is_completed(RadioDriver *radio);
+bool rfm22bInit(RFM22BDriver *drv, RFM22BConfig *config, void *arg);
+bool rfm22bRecvStart(RFM22BDriver *drv, void *arg);
+void rfm22bRecvStartS(RFM22BDriver *drv, void *arg);
+bool rfm22bSendStart(RFM22BDriver *drv, radio_packet_t *packet, void *arg);
+void rfm22bSendStartS(RFM22BDriver *drv, radio_packet_t *packet, void *arg);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ITHACA_USE_RADIO_RFM12B */
+#endif /* ITHACA_USE_RADIO_RFM22B */
 
-#endif /* _RADIO_RFM12B_H_ */
+#endif /* _RADIO_RFM22B_H_ */
 

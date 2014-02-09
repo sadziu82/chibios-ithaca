@@ -1,7 +1,7 @@
-#ifndef _RADIO_PACKET_H_
-#define _RADIO_PACKET_H_
+#ifndef _RADIO_BASE_H_
+#define _RADIO_BASE_H_
 
-#if ITHACA_USE_RADIO_PACKET || defined(__DOXYGEN__)
+#if ITHACA_USE_RADIO_BASE || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -27,15 +27,15 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ITHACA_USE_RADIO_PACKET */
+#endif /* ITHACA_USE_RADIO_BASE */
 
-#endif /* _RADIO_PACKET_H_ */
+#endif /* _RADIO_BASE_H_ */
 

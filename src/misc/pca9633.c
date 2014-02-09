@@ -331,7 +331,7 @@ void pca9633SequenceInit(pca9633_sequence_t *sequence) {
     uint8_t i;
     //
     consoleDebug("pca9633SequenceInit start\r\n");
-    if (lldLockWaitTimeout(&sequence->lock, MS2ST(5)) == true) {
+    if (ithacaLockTimeout(&sequence->lock, 5) == true) {
         sequence->position = 0;
         sequence->timestamp = 0;
         sequence->cur_seq = NULL;
@@ -340,7 +340,7 @@ void pca9633SequenceInit(pca9633_sequence_t *sequence) {
             sequence->channel[i]->period = sequence->period;
             pca9633ChannelInit(sequence->channel[i]);
         }
-        lldUnlock(&sequence->lock);
+        ithacaUnlock(&sequence->lock);
         consoleDebug("pca9633SequenceInit end\r\n");
     } else {
         consoleDebug("pca9633SequenceInit fail\r\n");
@@ -353,14 +353,14 @@ void pca9633SequenceInit(pca9633_sequence_t *sequence) {
 bool pca9633SequenceSet(pca9633_sequence_t *sequence,
                         pca9633_sequence_data_t *seq) {
     consoleDebug("pca9633SequenceSet start\r\n");
-    if (lldLockWaitTimeout(&sequence->lock, MS2ST(5)) == true) {
+    if (ithacaLockTimeout(&sequence->lock, 5) == true) {
         sequence->position = 0;
         sequence->timestamp = 0;
         sequence->cur_seq = seq;
         if (sequence->sleep_timeout != 0) {
             sequence->sleep_start = chTimeNow() + S2ST(sequence->sleep_timeout);
         }
-        lldUnlock(&sequence->lock);
+        ithacaUnlock(&sequence->lock);
         consoleDebug("pca9633SequenceSet end\r\n");
     } else {
         consoleDebug("pca9633SequenceSet fail\r\n");
@@ -374,11 +374,11 @@ bool pca9633SequenceSet(pca9633_sequence_t *sequence,
  */
 bool pca9633SequenceActivateSleep(pca9633_sequence_t *sequence) {
     consoleDebug("pca9633SequenceActivateSleep start\r\n");
-    if (lldLockWaitTimeout(&sequence->lock, MS2ST(5)) == true) {
+    if (ithacaLockTimeout(&sequence->lock, 5) == true) {
         sequence->position = 0;
         sequence->timestamp = 0;
         sequence->cur_seq = sequence->sleep_seq;
-        lldUnlock(&sequence->lock);
+        ithacaUnlock(&sequence->lock);
         consoleDebug("pca9633SequenceActivateSleep end\r\n");
     } else {
         consoleDebug("pca9633SequenceActivateSleep fail\r\n");
@@ -394,16 +394,16 @@ void pca9633SequenceUpdate(pca9633_sequence_t *sequence, varg_t unused) {
     //
     uint8_t i;
     consoleDebug("pca9633SequenceUpdate start\r\n");
-    if (lldLock(&sequence->lock) == true) {
+    if (ithacaLock(&sequence->lock) == true) {
         if ((sequence->sleep_start != 0) && (sequence->sleep_start < chTimeNow())) {
             
-            lldUnlock(&sequence->lock);
+            ithacaUnlock(&sequence->lock);
             pca9633SequenceSet(sequence, sequence->sleep_seq);
             consoleDebug("pca9633SequenceUpdate sleep activated\r\n");
             return;
         }
         if (sequence->cur_seq == NULL) {
-            lldUnlock(&sequence->lock);
+            ithacaUnlock(&sequence->lock);
             consoleDebug("pca9633SequenceUpdate cur_seq == NULL\r\n");
             return;
         }
@@ -411,7 +411,7 @@ void pca9633SequenceUpdate(pca9633_sequence_t *sequence, varg_t unused) {
             switch (sequence->cur_seq->data[sequence->position]) {
                 case 0x00:
                     if (sequence->cur_seq != NULL) {
-                        lldUnlock(&sequence->lock);
+                        ithacaUnlock(&sequence->lock);
                         pca9633SequenceSet(sequence, NULL);
                         consoleDebug("pca9633SequenceUpdate empty sequence\r\n");
                         return;
@@ -419,7 +419,7 @@ void pca9633SequenceUpdate(pca9633_sequence_t *sequence, varg_t unused) {
                     break;
                 case 0xFF:
                     if (sequence->cur_seq->next != NULL) {
-                        lldUnlock(&sequence->lock);
+                        ithacaUnlock(&sequence->lock);
                         pca9633SequenceSet(sequence, sequence->cur_seq->next);
                         consoleDebug("pca9633SequenceUpdate next sequence activated\r\n");
                         return;
@@ -444,7 +444,7 @@ void pca9633SequenceUpdate(pca9633_sequence_t *sequence, varg_t unused) {
                     break;
             }
         }
-        lldUnlock(&sequence->lock);
+        ithacaUnlock(&sequence->lock);
         consoleDebug("pca9633SequenceUpdate end\r\n");
     } else {
         consoleDebug("pca9633SequenceUpdate fail\r\n");

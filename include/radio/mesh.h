@@ -3,8 +3,7 @@
 
 #if ITHACA_USE_RADIO_MESH || defined(__DOXYGEN__)
 
-#if ITHACA_USE_RADIO_RFM12B || ITHACA_USE_RADIO_RFM22B
-#else
+#if !ITHACA_USE_RADIO
     #error Low level radio driver not defined
 #endif
 
@@ -85,10 +84,8 @@ typedef struct {
     mesh_callback_t send_cb;
     mesh_callback_t error_cb;
     // low level radio driver
-#ifdef ITHACA_USE_RADIO_RFM12B
-    RFM12BDriver *radio_drv;
-    RFM12BConfig *radio_cfg;
-#endif
+    RadioDriver *radio_drv;
+    RadioConfig *radio_cfg;
 } MeshConfig;
 
 /*

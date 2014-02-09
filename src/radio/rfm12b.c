@@ -26,8 +26,8 @@ typedef enum {
     RFM12B_PLL = 0xCC00,
     RFM12B_WAKEUP_TIMER = 0xE000,
     RFM12B_LOW_DUTY_CYCLE = 0xC800,
-    RFM12B_TX_WRITE = 0xB800,
-    RFM12B_RX_READ = 0xB000,
+    RFM12B_TXFIFO_WRITE = 0xB800,
+    RFM12B_RXFIFO_READ = 0xB000,
     RFM12B_LOW_BATTERY_DETECTOR = 0xC000,
 } rfm12b_register_t;
 
@@ -113,6 +113,15 @@ typedef enum {
 } rfm12b_power_management_t;
 
 /*
+ * @brief   ...
+ * @details ...
+ */
+typedef enum {
+    RFM12B_FIFO_RESET_MODE_CLEAR = 0x0081,
+    RFM12B_FIFO_RESET_MODE_SET = 0x0083,
+} rfm12b_reset_mode_t;
+
+/*
  * @brief   Low-voltage battery detector presets.
  * @details Low-voltage battery detecter is the only way to check
             if RFM12B module is present. Setting threshold lower than Vcc
@@ -128,29 +137,9 @@ typedef enum {
 /* Driver exported variables.                                                */
 /*===========================================================================*/
 
-/*
- * @brief   RFM12B driver one instance.
- */
-RFM12BDriver RFM12BD1 = {
-    .lock = {
-        .name = "RFM12BD1",
-        .flag = false,
-    },
-};
-
 /*===========================================================================*/
 /* Driver local variables and types.                                         */
 /*===========================================================================*/
-
-/*
- * @brief   SPI configuration used by RFM12B.
- */
-static SPIConfig rfm12b_spi_cfg = {
-    .end_cb = NULL,
-    .cr1 = SPI_CR1_MSTR | SPI_CR1_DFF |
-           SPI_CR1_BR_1,
-           //SPI_CR1_BR_1 | SPI_CR1_BR_0,
-};
 
 /*===========================================================================*/
 /* Driver local functions.                                                   */
@@ -160,39 +149,49 @@ static SPIConfig rfm12b_spi_cfg = {
  * @brief   RFM12B IRQ handler.
  */
 static void rfm12b_lld_nirq_handler(EXTDriver *extp, expchannel_t channel);
+static void rfm12b_lld_spi_handler_rx(SPIDriver *spip);
+static void rfm12b_lld_spi_handler_tx(SPIDriver *spip);
 
 /*
  * @brief   RFM12B RST line assert.
  */
-void rfm12b_lld_assert_rst(const RFM12BDriver *drv) {
-    palClearPad(drv->config->rst_port, drv->config->rst_pin);
+void rfm12b_lld_assert_rst(const RadioDriver *radio) {
+    palClearPad(radio->config->lld_config.rfm12b->rst_port,
+                radio->config->lld_config.rfm12b->rst_pin);
 }
 
 /*
  * @brief   RFM12B RST line release.
  */
-void rfm12b_lld_release_rst(const RFM12BDriver *drv) {
-    palSetPad(drv->config->rst_port, drv->config->rst_pin);
+void rfm12b_lld_release_rst(const RadioDriver *radio) {
+    palSetPad(radio->config->lld_config.rfm12b->rst_port,
+              radio->config->lld_config.rfm12b->rst_pin);
 }
 
 /*
  * @brief   Exchange half-word data with RFM12B module.
  */
-inline
-uint16_t rfm12b_lld_xfer(const RFM12BDriver *drv, const uint16_t cmd) {
-    uint16_t data = 0;
-    spiSelect(drv->config->spi_drv);
-    spiExchange(drv->config->spi_drv, 1, &cmd, &data);
-    spiUnselect(drv->config->spi_drv);
+uint16_t rfm12b_lld_xfer(const RadioDriver *radio, const uint16_t cmd) {
+    static uint16_t data;
+    data = 0x00;
+    ////while (!((radio->lld_driver.rfm12b.state <= RFM12B_IDLE) ||
+    ////         (radio->lld_driver.rfm12b.state == RFM12B_RX_COMPLETE) ||
+    ////         (radio->lld_driver.rfm12b.state == RFM12B_TX_COMPLETE) ||
+    ////         (radio->lld_driver.rfm12b.state >= RFM12B_RX_ERROR))) {
+    ////    chThdYield();
+    ////}
+    spiSelect(radio->config->lld_config.rfm12b->spi_drv);
+    spiExchange(radio->config->lld_config.rfm12b->spi_drv, 1, &cmd, &data);
+    spiUnselect(radio->config->lld_config.rfm12b->spi_drv);
     return data;
 }
 
 /*
  * @brief   Write one byte data to RFM12B register.
  */
-void rfm12b_lld_write(const RFM12BDriver *drv,
-                   const rfm12b_register_t reg, const uint16_t data) {
-    rfm12b_lld_xfer(drv, reg | data);
+void rfm12b_lld_write(const RadioDriver *radio,
+                      const rfm12b_register_t reg, const uint16_t data) {
+    rfm12b_lld_xfer(radio, reg | data);
 }
 
 /*
@@ -200,18 +199,18 @@ void rfm12b_lld_write(const RFM12BDriver *drv,
  * @details Only status register can be read.
             Others may return undefined results.
  */
-uint8_t rfm12b_lld_read(const RFM12BDriver *drv) {
+uint8_t rfm12b_lld_read(const RadioDriver *radio) {
     //
-    return (rfm12b_lld_xfer(drv, RFM12B_RX_READ) & 0xFF);
+    return (rfm12b_lld_xfer(radio, RFM12B_RXFIFO_READ) & 0xFF);
 }
 
 /*
  * @brief   Return RFM12B status.
  */
 inline
-uint16_t rfm12b_lld_status(const RFM12BDriver *drv) {
+uint16_t rfm12b_lld_status(const RadioDriver *radio) {
     //
-    return rfm12b_lld_xfer(drv, RFM12B_STATUS);
+    return rfm12b_lld_xfer(radio, RFM12B_STATUS);
 }
 
 /*===========================================================================*/
@@ -225,34 +224,140 @@ uint16_t rfm12b_lld_status(const RFM12BDriver *drv) {
             RST, CE and IRQ lines are configured by this function.
             SPI driver is configured & started also here.
  */
-static bool rfm12b_lld_init_io(RFM12BDriver *drv) {
+static bool rfm12b_lld_init_io(RadioDriver *radio) {
     //
-    consoleDebug("rfm12b_lld_init_io start\r\n");
-    // spi cs
-    rfm12b_spi_cfg.ssport = drv->config->cs_port;
-    rfm12b_spi_cfg.sspad = drv->config->cs_pin;
-    palSetPadMode(drv->config->cs_port, drv->config->cs_pin,
+    consoleDevel("rfm12b_lld_init_io() start\r\n");
+    // spi
+    radio->lld_driver.rfm12b.spi_cfg.end_cb = NULL;
+    // max spi clock 2.5 MHz for RFM12B fifo read
+    radio->lld_driver.rfm12b.spi_cfg.cr1 = SPI_CR1_MSTR | SPI_CR1_DFF | SPI_CR1_BR_1 | SPI_CR1_BR_0;
+    radio->lld_driver.rfm12b.spi_cfg.ssport = radio->config->lld_config.rfm12b->cs_port;
+    radio->lld_driver.rfm12b.spi_cfg.sspad = radio->config->lld_config.rfm12b->cs_pin;
+    radio->config->lld_config.rfm12b->spi_drv->user_ptr = radio;
+    // io ports
+    palSetPadMode(radio->config->lld_config.rfm12b->cs_port,
+                  radio->config->lld_config.rfm12b->cs_pin,
                   PAL_MODE_OUTPUT_PUSHPULL);
-    // reset
-    palSetPadMode(drv->config->rst_port, drv->config->rst_pin,
+    palSetPadMode(radio->config->lld_config.rfm12b->rst_port,
+                  radio->config->lld_config.rfm12b->rst_pin,
                   PAL_MODE_OUTPUT_PUSHPULL);
-    // nirq
-    palSetPadMode(drv->config->nirq_port, drv->config->nirq_pin,
+    palSetPadMode(radio->config->lld_config.rfm12b->nirq_port,
+                  radio->config->lld_config.rfm12b->nirq_pin,
                   PAL_MODE_INPUT_PULLUP);
-    drv->nirq_cfg.mode = EXT_CH_MODE_FALLING_EDGE |
-                         drv->config->ext_mode;
-    drv->nirq_cfg.cb = rfm12b_lld_nirq_handler;
-    // configure ext channel used by radio
-    chSysLock();
-    extSetChannelModeI(drv->config->ext_drv,
-                       drv->config->nirq_pin, &drv->nirq_cfg);
-    chSysUnlock()
-    extChannelEnable(drv->config->ext_drv,
-                     drv->config->nirq_pin);
     // start spi driver
-    spiStart(drv->config->spi_drv, &rfm12b_spi_cfg);
+    spiStart(radio->config->lld_config.rfm12b->spi_drv,
+             &radio->lld_driver.rfm12b.spi_cfg);
+    // interupt handler
+    radio->config->lld_config.rfm12b->ext_drv->user_ptr = radio;
+    radio->lld_driver.rfm12b.nirq_cfg.mode = EXT_CH_MODE_FALLING_EDGE |
+                                             radio->config->lld_config.rfm12b->ext_mode;
+    radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
+    // start ext channel
+    extSetChannelMode(radio->config->lld_config.rfm12b->ext_drv,
+                      radio->config->lld_config.rfm12b->nirq_pin,
+                      &radio->lld_driver.rfm12b.nirq_cfg);
+    extChannelEnable(radio->config->lld_config.rfm12b->ext_drv,
+                     radio->config->lld_config.rfm12b->nirq_pin);
     //
-    consoleDebug("rfm12b_lld_init_io end\r\n");
+    consoleDevel("rfm12b_lld_init_io() end\r\n");
+    return true;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+static bool rfm12b_lld_init_module(RadioDriver *radio) {
+    //
+    systime_t timeout;
+    //
+    consoleDevel("rfm12b_lld_init_module() start\r\n");
+    // reset module
+    rfm12b_lld_assert_rst(radio);
+    chThdSleepMilliseconds(10);
+    rfm12b_lld_release_rst(radio);
+    chThdSleepMilliseconds(10);
+    // put module into sleep mode
+    rfm12b_lld_write(radio, RFM12B_POWER_MANAGEMENT,
+                     RFM12B_POWER_MANAGEMENT_DISABLE_CLOCK_OUTPUT |
+                     RFM12B_POWER_MANAGEMENT_ENABLE_LOW_BATTERY_DETECTOR);
+    //
+    rfm12b_lld_write(radio, RFM12B_TXFIFO_WRITE, 0);
+    //
+    if (palReadPad(radio->config->lld_config.rfm12b->nirq_port,
+                   radio->config->lld_config.rfm12b->nirq_pin) != 0) {
+        consoleDevel("rfm12b_lld_init_module() nIRQ high after hardware reset\r\n");
+        return false;
+    }
+    //
+    timeout = chTimeNow() + MS2ST(250);
+    while (true) {
+        if ((rfm12b_lld_status(radio) & RFM12B_STATUS_POWER_ON_RESET) != 0) {
+            consoleDevel("rfm12b_lld_init_module() power-on-reset bit set\r\n");
+            break;
+        } else if (timeout <= chTimeNow()) {
+            consoleWarn("rfm12b_lld_init_module() power-on-reset "
+                         "timeout expired\r\n");
+            return false;
+        }
+        consoleDevel("rfm12b_lld_init_module wait-loop\r\n");
+        chThdSleepMilliseconds(10);
+    }
+    // nIRQ pin should be now high
+    if (palReadPad(radio->config->lld_config.rfm12b->nirq_port,
+                   radio->config->lld_config.rfm12b->nirq_pin) == 0) {
+        consoleWarn("rfm12b_lld_init_module() nIRQ low after status read\r\n");
+        return false;
+    }
+    // check module presence by setting high low-battery-detector threshold
+    rfm12b_lld_write(radio, RFM12B_LOW_BATTERY_DETECTOR,
+                     RFM12B_LOW_BATTERY_V37);
+    // wait for detector to activate
+    chThdSleepMilliseconds(5);
+    if ((rfm12b_lld_status(radio) & RFM12B_STATUS_LOW_BATTERY) == 0) {
+        consoleWarn("rfm12b_lld_init_module() low-battery-detector "
+                     "test failed\r\n");
+        return false;
+    }
+    consoleDevel("rfm12b_lld_init_module() low-battery-detector test ok\r\n");
+    // restore low-battery-detector threshold
+    rfm12b_lld_write(radio, RFM12B_LOW_BATTERY_DETECTOR,
+                     RFM12B_LOW_BATTERY_V22);
+    // put module into sleep mode
+    rfm12b_lld_write(radio, RFM12B_POWER_MANAGEMENT,
+                     RFM12B_POWER_MANAGEMENT_IDLE_MODE);
+    //
+    consoleDevel("rfm12b_lld_init_module() end\r\n");
+    return true;
+}
+
+/*
+ * @brief   rfm12b ...
+ */
+static bool rfm12b_lld_init_setup(RadioDriver *radio) {
+    // initialize rf module
+    consoleDevel("rfm12b_lld_init_setup() start\r\n");
+    rfm12b_lld_write(radio, RFM12B_CONFIGURATION,
+                     RFM12B_CONFIGURATION_BAND868_IDLE);
+    rfm12b_lld_write(radio, RFM12B_FREQUENCY,
+                     radio->config->lld_config.rfm12b->base_freq);
+    rfm12b_lld_write(radio, RFM12B_DATA_RATE,
+                     radio->config->lld_config.rfm12b->data_rate);
+    rfm12b_lld_write(radio, RFM12B_RECEIVER_CONTROL, 0x0480);
+    rfm12b_lld_write(radio, RFM12B_DATA_FILTER, 0x00AC);
+    rfm12b_lld_write(radio, RFM12B_FIFO_RESET_MODE,
+                     RFM12B_FIFO_RESET_MODE_SET);
+    rfm12b_lld_write(radio, RFM12B_SYNCHRON_PATTERN,
+                     radio->config->lld_config.rfm12b->syncword);
+    rfm12b_lld_write(radio, RFM12B_AFC, 0x0083);
+    rfm12b_lld_write(radio, RFM12B_TX_CONFIG, 0x0070);
+    rfm12b_lld_write(radio, RFM12B_PLL, 0x0077);
+    rfm12b_lld_write(radio, RFM12B_WAKEUP_TIMER, 0x0000);
+    rfm12b_lld_write(radio, RFM12B_LOW_DUTY_CYCLE, 0x0000);
+    rfm12b_lld_write(radio, RFM12B_LOW_BATTERY_DETECTOR, 0x0000);
+    //
+    chThdSleepMilliseconds(50);
+    consoleDevel("rfm12b_lld_init_setup() end\r\n");
     //
     return true;
 }
@@ -261,98 +366,326 @@ static bool rfm12b_lld_init_io(RFM12BDriver *drv) {
  * @brief   ...
  * @details ...
  */
-static bool rfm12b_lld_init_module(RFM12BDriver *drv) {
-    //
-    systime_t timeout;
-    //
-    consoleDebug("rfm12b_lld_init_module start\r\n");
-    // reset module
-    rfm12b_lld_assert_rst(drv);
-    chThdSleepMilliseconds(10);
-    //
-    rfm12b_lld_release_rst(drv);
-    chThdSleepMilliseconds(10);
-    // put module into sleep mode
-    rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
-                RFM12B_POWER_MANAGEMENT_DISABLE_CLOCK_OUTPUT |
-                RFM12B_POWER_MANAGEMENT_ENABLE_LOW_BATTERY_DETECTOR);
-    // make sure we are in fifo mode
-    rfm12b_lld_write(drv, RFM12B_TX_WRITE, 0);
-    //
-    if (palReadPad(drv->config->nirq_port, drv->config->nirq_pin) != 0) {
-        consoleDebug("rfm12b_lld_init_module nIRQ high after hardware reset\r\n");
+bool rfm12b_lld_is_error(RadioDriver *radio) {
+    if ((radio->lld_driver.rfm12b.state == RFM12B_RX_ERROR) &&
+        (radio->lld_driver.rfm12b.state == RFM12B_TX_ERROR)) {
+        consoleDevel("rfm12b_lld_is_error() == true\r\n");
+        return true;
+    } else {
+        consoleDevel("rfm12b_lld_is_error() == false\r\n");
         return false;
     }
-    //
-    timeout = chTimeNow() + MS2ST(250);
-    while (true) {
-        if ((rfm12b_lld_status(drv) & RFM12B_STATUS_POWER_ON_RESET) != 0) {
-            consoleDebug("rfm12b_lld_init_module power-on-reset bit set\r\n");
-            break;
-        } else if (timeout <= chTimeNow()) {
-            consoleDebug("rfm12b_lld_init_module power-on-reset "
-                         "timeout expired\r\n");
-            return false;
-        }
-        consoleDebug("rfm12b_lld_init_module wait-loop\r\n");
-        chThdSleepMilliseconds(5);
-    }
-    // nIRQ pin should be now high
-    if (palReadPad(drv->config->nirq_port, drv->config->nirq_pin) == 0) {
-        consoleDebug("rfm12b_lld_init_module nIRQ low after status read\r\n");
-        return false;
-    }
-    // check module presence by setting high low-battery-detector threshold
-    rfm12b_lld_write(drv, RFM12B_LOW_BATTERY_DETECTOR,
-                     RFM12B_LOW_BATTERY_V37);
-    // wait for detector to activate
-    chThdSleepMilliseconds(5);
-    if ((rfm12b_lld_status(drv) & RFM12B_STATUS_LOW_BATTERY) == 0) {
-        consoleDebug("rfm12b_lld_init_module low-battery-detector "
-                     "test failed\r\n");
-        return false;
-    }
-    // restore low-battery-detector threshold
-    rfm12b_lld_write(drv, RFM12B_LOW_BATTERY_DETECTOR,
-                     RFM12B_LOW_BATTERY_V22);
-    // put module into sleep mode
-    rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
-                     RFM12B_POWER_MANAGEMENT_IDLE_MODE);
-    // change driver state
-    drv->state = RFM12B_STOP;
-    //
-    consoleDebug("rfm12b_lld_init_module end\r\n");
-    return true;
 }
 
 /*
- * @brief   rfm12b ...
+ * @brief   rfm12b send trigger
+ * @details radio is locked - no need to lock here
  */
-static bool rfm12b_lld_init_setup(RFM12BDriver *drv) {
-    // initialize rf module
-    consoleDebug("rfm12b_lld_init_setup start\r\n");
-    rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
+void rfm12b_lld_idle(RadioDriver *radio) {
+    //
+    consoleDevel("rfm12b_lld_idle() start\r\n");
+    if (ithacaLockTimeout(&radio->lld_driver.rfm12b.lock, 5) == false) {
+        consoleDevel("rfm12b_lld_idle() lock failed\r\n");
+        return;
+    }
+    // clear el, et, er bits
+    rfm12b_lld_write(radio, RFM12B_CONFIGURATION,
                      RFM12B_CONFIGURATION_BAND868_IDLE);
-    rfm12b_lld_write(drv, RFM12B_FREQUENCY,
-                     drv->config->base_freq);
-    rfm12b_lld_write(drv, RFM12B_DATA_RATE,
-                     drv->config->data_rate);
-    rfm12b_lld_write(drv, RFM12B_RECEIVER_CONTROL, 0x0480);
-    rfm12b_lld_write(drv, RFM12B_DATA_FILTER, 0x00AC);
-    rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0X0083);
-    rfm12b_lld_write(drv, RFM12B_SYNCHRON_PATTERN,
-                     drv->config->group_id);
-    rfm12b_lld_write(drv, RFM12B_AFC, 0x0083);
-    rfm12b_lld_write(drv, RFM12B_TX_CONFIG, 0x0070);
-    rfm12b_lld_write(drv, RFM12B_PLL, 0x0077);
-    rfm12b_lld_write(drv, RFM12B_WAKEUP_TIMER, 0x0000);
-    rfm12b_lld_write(drv, RFM12B_LOW_DUTY_CYCLE, 0x0000);
-    rfm12b_lld_write(drv, RFM12B_LOW_BATTERY_DETECTOR, 0x0000);
+    rfm12b_lld_write(radio, RFM12B_POWER_MANAGEMENT,
+                     RFM12B_POWER_MANAGEMENT_IDLE_MODE);
+    // clear interrupts
+    rfm12b_lld_status(radio);
+    // set idle state
+    radio->lld_driver.rfm12b.state = RFM12B_IDLE;
     //
-    chThdSleepMilliseconds(50);
-    consoleDebug("rfm12b_lld_init_setup end\r\n");
+    ithacaUnlock(&radio->lld_driver.rfm12b.lock);
+    consoleDevel("rfm12b_lld_idle() end\r\n");
+}
+
+/*
+ * @brief   rfm12b receive trigger
+ * @details radio is locked - no need to lock here
+ */
+void rfm12b_lld_receive_start(RadioDriver *radio) {
     //
-    return true;
+    consoleDevel("rfm12b_lld_receive_start() start\r\n");
+    if (ithacaLockTimeout(&radio->lld_driver.rfm12b.lock, 5) == false) {
+        consoleDevel("rfm12b_lld_receive_start() lock failed\r\n");
+        return;
+    }
+    // change driver state
+    radio->lld_driver.rfm12b.state = RFM12B_IDLE;
+    // switch to rx mode
+    rfm12b_lld_write(radio, RFM12B_CONFIGURATION,
+                     RFM12B_CONFIGURATION_BAND868_RX);
+    rfm12b_lld_write(radio, RFM12B_POWER_MANAGEMENT,
+                     RFM12B_POWER_MANAGEMENT_RX_MODE);
+    // clear interrupts
+    rfm12b_lld_status(radio);
+    // make sure hardware crc32 module is enabled
+    RCC->AHBENR |= RCC_AHBENR_CRCEN;
+    // reset fifo to start receive
+    rfm12b_lld_write(radio, RFM12B_FIFO_RESET_MODE,
+                     RFM12B_FIFO_RESET_MODE_CLEAR);
+    rfm12b_lld_write(radio, RFM12B_FIFO_RESET_MODE,
+                     RFM12B_FIFO_RESET_MODE_SET);
+    // reset hardware crc32
+    CRC->CR = (uint32_t)0x01;
+    // change driver state
+    radio->lld_driver.rfm12b.state = RFM12B_RX_START;
+    //
+    ithacaUnlock(&radio->lld_driver.rfm12b.lock);
+    consoleDevel("rfm12b_lld_receive_start() end\r\n");
+}
+
+/*
+ * @brief   rfm12b receive trigger
+ * @details radio is locked - no need to lock here
+ */
+bool rfm12b_lld_receive_is_completed(RadioDriver *radio) {
+    if (radio->lld_driver.rfm12b.state == RFM12B_RX_COMPLETE) {
+        consoleDevel("rfm12b_lld_receive_is_completed() == true\r\n");
+        consoleDebug("%8X vs %8X\r\n", radio->lld_driver.rfm12b.crc_self, radio->lld_driver.rfm12b.crc_recv);
+        return true;
+    } else {
+        consoleDevel("rfm12b_lld_receive_is_completed() == false\r\n");
+        return false;
+    }
+}
+
+/*
+ * @brief   rfm12b send trigger
+ * @details radio is locked - no need to lock here
+ */
+void rfm12b_lld_send_start(RadioDriver *radio) {
+    //
+    consoleDevel("rfm12b_lld_send_start() start\r\n");
+    if (ithacaLockTimeout(&radio->lld_driver.rfm12b.lock, 5) == false) {
+        consoleDevel("rfm12b_lld_send_start() lock failed\r\n");
+        return;
+    }
+    // clear el, et bits
+    rfm12b_lld_write(radio, RFM12B_CONFIGURATION,
+                     RFM12B_CONFIGURATION_BAND868_IDLE);
+    rfm12b_lld_write(radio, RFM12B_POWER_MANAGEMENT,
+                     RFM12B_POWER_MANAGEMENT_IDLE_MODE);
+    // clear interrupts
+    rfm12b_lld_status(radio);
+    // switch to tx mode
+    rfm12b_lld_write(radio, RFM12B_CONFIGURATION,
+                     RFM12B_CONFIGURATION_BAND868_TX);
+    rfm12b_lld_write(radio, RFM12B_POWER_MANAGEMENT,
+                     RFM12B_POWER_MANAGEMENT_TX_MODE);
+    // change driver state
+    radio->lld_driver.rfm12b.state = RFM12B_TX_START;
+    //
+    ithacaUnlock(&radio->lld_driver.rfm12b.lock);
+    consoleDevel("rfm12b_lld_send_start() end\r\n");
+}
+
+/*
+ * @brief   rfm12b receive trigger
+ * @details radio is locked - no need to lock here
+ */
+bool rfm12b_lld_send_is_completed(RadioDriver *radio) {
+    if (radio->lld_driver.rfm12b.state == RFM12B_TX_COMPLETE) {
+        consoleDevel("rfm12b_lld_send_is_completed() == true\r\n");
+        return true;
+    } else {
+        consoleDevel("rfm12b_lld_send_is_completed() == false\r\n");
+        return false;
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+static void rfm12b_lld_spi_handler_tx(SPIDriver *spip) {
+    //
+    RadioDriver *radio;
+    //
+    radio = spip->user_ptr;
+    if (radio == NULL) {
+        return;
+    }
+    // end spi transmission
+    spiUnselectI(radio->config->lld_config.rfm12b->spi_drv);
+    if (radio->lld_driver.rfm12b.spi_xfer_last == true) {
+        radio->lld_driver.rfm12b.spi_cfg.end_cb = NULL;
+        return;
+    } else {
+        radio->lld_driver.rfm12b.spi_xfer_last = true;
+    }
+    //
+    if (ithacaLockISR(&radio->lld_driver.rfm12b.lock) == false) {
+        return;
+    }
+    //
+    if ((radio->lld_driver.rfm12b.state >= RFM12B_TX_START) &&
+        (radio->lld_driver.rfm12b.state <= RFM12B_TX_COMPLETE)) {
+        if (radio->lld_driver.rfm12b.txrx_data & RFM12B_STATUS_TX_UNDERRUN) {
+            radio->packet.data[1]++;
+        } else if (radio->lld_driver.rfm12b.txrx_data & RFM12B_STATUS_TX_READY) {
+            radio->packet.data[0]++;
+            switch (radio->lld_driver.rfm12b.state) {
+                case RFM12B_TX_START:
+                    radio->lld_driver.rfm12b.txrx_counter = 2;
+                    radio->lld_driver.rfm12b.state = RFM12B_TX_PREAMBLE;
+                    // no break here
+                case RFM12B_TX_PREAMBLE:
+                    radio->lld_driver.rfm12b.txrx_data = RFM12B_TXFIFO_WRITE | 0xAA;
+                    if (++radio->lld_driver.rfm12b.txrx_counter >= radio->config->lld_config.rfm12b->preamble_length) {
+                        radio->lld_driver.rfm12b.state = RFM12B_TX_SYNC1;
+                    }
+                    break;
+                case RFM12B_TX_SYNC1:
+                    // make sure hardware crc32 module is enabled
+                    RCC->AHBENR |= RCC_AHBENR_CRCEN;
+                    //
+                    radio->lld_driver.rfm12b.txrx_data = RFM12B_TXFIFO_WRITE | 0x2D;
+                    radio->lld_driver.rfm12b.state = RFM12B_TX_SYNC2;
+                    break;
+                case RFM12B_TX_SYNC2:
+                    // reset hardware crc32
+                    CRC->CR = (uint32_t)0x01;
+                    //
+                    radio->lld_driver.rfm12b.txrx_counter = 0;
+                    radio->lld_driver.rfm12b.txrx_data = RFM12B_TXFIFO_WRITE | radio->config->lld_config.rfm12b->syncword;
+                    radio->lld_driver.rfm12b.state = RFM12B_TX_DATA;
+                    break;
+                case RFM12B_TX_DATA:
+                    // update crc data
+                    CRC->DR = radio->packet.data[radio->lld_driver.rfm12b.txrx_counter];
+                    // TODO write real data here
+                    radio->lld_driver.rfm12b.txrx_data = RFM12B_TXFIFO_WRITE | radio->packet.data[radio->lld_driver.rfm12b.txrx_counter];
+                    if (++radio->lld_driver.rfm12b.txrx_counter >= RADIO_PACKET_DATA_SIZE) {
+                        radio->lld_driver.rfm12b.state = RFM12B_TX_CRC;
+                        radio->lld_driver.rfm12b.txrx_counter = 0;
+                        // read crc and disable module
+                        radio->lld_driver.rfm12b.crc_self = CRC->DR;
+                        RCC->AHBENR &= ~RCC_AHBENR_CRCEN;
+                    }
+                    break;
+                case RFM12B_TX_CRC:
+                    //
+                    radio->lld_driver.rfm12b.txrx_data = RFM12B_TXFIFO_WRITE | ((radio->lld_driver.rfm12b.crc_self & 0xFF000000) >> 24);
+                    radio->lld_driver.rfm12b.crc_self <<= 8;
+                    if (++radio->lld_driver.rfm12b.txrx_counter >= sizeof(radio->lld_driver.rfm12b.crc_self)) {
+                        radio->lld_driver.rfm12b.state = RFM12B_TX_POSTAMBLE;
+                        radio->lld_driver.rfm12b.txrx_counter = 0;
+                    }
+                    break;
+                case RFM12B_TX_POSTAMBLE:
+                    radio->lld_driver.rfm12b.txrx_data = RFM12B_TXFIFO_WRITE | 0xAA;
+                    if (++radio->lld_driver.rfm12b.txrx_counter >= radio->config->lld_config.rfm12b->postamble_length) {
+                        radio->lld_driver.rfm12b.txrx_data = 0;
+                        radio->lld_driver.rfm12b.state = RFM12B_TX_COMPLETE;
+                    }
+                    break;
+                default:
+                    radio->packet.data[1]++;
+                    radio->lld_driver.rfm12b.txrx_data = 0;
+                    break;
+            }
+            if (radio->lld_driver.rfm12b.txrx_data != 0) {
+                spiSelectI(radio->config->lld_config.rfm12b->spi_drv);
+                spiStartExchangeI(radio->config->lld_config.rfm12b->spi_drv,
+                    1, &radio->lld_driver.rfm12b.txrx_data,
+                    &radio->lld_driver.rfm12b.txrx_data);
+            }
+        } else {
+            radio->lld_driver.rfm12b.txrx_data = RFM12B_STATUS;
+            spiSelectI(radio->config->lld_config.rfm12b->spi_drv);
+            spiStartExchangeI(radio->config->lld_config.rfm12b->spi_drv,
+                1, &radio->lld_driver.rfm12b.txrx_data,
+                &radio->lld_driver.rfm12b.txrx_data);
+        }
+    }
+    ithacaUnlockISR(&radio->lld_driver.rfm12b.lock);
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+static void rfm12b_lld_spi_handler_rx(SPIDriver *spip) {
+    //
+    RadioDriver *radio;
+    //
+    radio = spip->user_ptr;
+    if (radio == NULL) {
+        return;
+    }
+    // end spi transmission
+    spiUnselectI(radio->config->lld_config.rfm12b->spi_drv);
+    if (ithacaLockISR(&radio->lld_driver.rfm12b.lock) == false) {
+        return;
+    }
+    //
+    if (radio->lld_driver.rfm12b.spi_xfer_last == true) {
+        radio->lld_driver.rfm12b.spi_cfg.end_cb = NULL;
+        switch (radio->lld_driver.rfm12b.state) {
+            case RFM12B_RX_START:
+            case RFM12B_RX_WAIT:
+                // update crc data
+                CRC->DR = radio->lld_driver.rfm12b.txrx_data & 0xFF;
+                //
+                radio->packet.data[0] = radio->lld_driver.rfm12b.txrx_data & 0xFF;
+                radio->lld_driver.rfm12b.txrx_counter = 1;
+                radio->lld_driver.rfm12b.state = RFM12B_RX_DATA;
+                radio->lld_driver.rfm12b.txrx_data = RFM12B_RXFIFO_READ;
+                break;
+            case RFM12B_RX_DATA:
+                // update crc data
+                CRC->DR = radio->lld_driver.rfm12b.txrx_data & 0xFF;
+                //
+                radio->packet.data[radio->lld_driver.rfm12b.txrx_counter] = radio->lld_driver.rfm12b.txrx_data & 0xFF;
+                radio->lld_driver.rfm12b.txrx_data = RFM12B_RXFIFO_READ;
+                if (++radio->lld_driver.rfm12b.txrx_counter >= RADIO_PACKET_DATA_SIZE) {
+                    radio->lld_driver.rfm12b.txrx_counter = 0;
+                    radio->lld_driver.rfm12b.state = RFM12B_RX_CRC;
+                    // store crc and disable hardware module
+                    radio->lld_driver.rfm12b.crc_self = CRC->DR;
+                    RCC->AHBENR &= ~RCC_AHBENR_CRCEN;
+                }
+                break;
+            case RFM12B_RX_CRC:
+                //radio->packet.data[radio->lld_driver.rfm12b.txrx_counter] = radio->lld_driver.rfm12b.txrx_data;
+                radio->lld_driver.rfm12b.crc_recv <<= 8;
+                radio->lld_driver.rfm12b.crc_recv |= radio->lld_driver.rfm12b.txrx_data & 0xFF;
+                radio->lld_driver.rfm12b.txrx_data = RFM12B_RXFIFO_READ;
+                if (++radio->lld_driver.rfm12b.txrx_counter >= sizeof(radio->lld_driver.rfm12b.crc_self)) {
+                    radio->lld_driver.rfm12b.txrx_counter = 0;
+                    radio->lld_driver.rfm12b.state = RFM12B_RX_POSTAMBLE;
+                }
+                break;
+            case RFM12B_RX_POSTAMBLE:
+                //radio->packet.data[radio->lld_driver.rfm12b.txrx_counter] = radio->lld_driver.rfm12b.txrx_data;
+                radio->lld_driver.rfm12b.txrx_data = RFM12B_RXFIFO_READ;
+                if (++radio->lld_driver.rfm12b.txrx_counter >= radio->config->lld_config.rfm12b->postamble_length) {
+                    radio->lld_driver.rfm12b.txrx_counter = 0;
+                    radio->lld_driver.rfm12b.state = RFM12B_RX_COMPLETE;
+                }
+                break;
+            default:
+                radio->lld_driver.rfm12b.txrx_data = 0;
+                break;
+        }
+    } else {
+        // rfm12b status in txrx_data
+        if (radio->lld_driver.rfm12b.txrx_data & RFM12B_STATUS_RX_READY) {
+            radio->lld_driver.rfm12b.txrx_data = RFM12B_RXFIFO_READ;
+            radio->lld_driver.rfm12b.spi_xfer_last = true;
+        } else {
+            radio->lld_driver.rfm12b.txrx_data = RFM12B_STATUS;
+        }
+        spiSelectI(radio->config->lld_config.rfm12b->spi_drv);
+        spiStartExchangeI(radio->config->lld_config.rfm12b->spi_drv,
+            1, &radio->lld_driver.rfm12b.txrx_data,
+            &radio->lld_driver.rfm12b.txrx_data);
+    }
+    ithacaUnlockISR(&radio->lld_driver.rfm12b.lock);
 }
 
 /*
@@ -361,351 +694,73 @@ static bool rfm12b_lld_init_setup(RFM12BDriver *drv) {
  */
 static void rfm12b_lld_nirq_handler(EXTDriver *extp, expchannel_t channel) {
     //
-    RFM12BDriver *drv;
-    (void)extp;
-    uint32_t crc;
+    (void)channel;
+    RadioDriver *radio;
     //
-    if (RFM12BD1.config->nirq_pin == channel) {
-        drv = &RFM12BD1;
-    } else {
-        // no driver enabled/configured, ignore interrupt
+    radio = extp->user_ptr;
+    if (radio == NULL) {
         return;
     }
-    if (lldLockISR(&drv->lock) == true) {
-        switch (drv->state) {
-            case RFM12B_UNINIT:
-            case RFM12B_STOP:
-            case RFM12B_IDLE:
-            case RFM12B_RX_INIT:
-                break;
-            case RFM12B_RX_START:
-                // reset CRC
-                CRC->CR = (uint32_t)0x01;
-                // initiate first read
-                spiUnselectI(drv->config->spi_drv);
-                drv->txrx_data = RFM12B_RX_READ;
-                spiSelectI(drv->config->spi_drv);
-                spiStartExchangeI(drv->config->spi_drv,
-                                  1, &drv->txrx_data, &drv->txrx_data);
-                // single packet reception should not take long
-                // TODO make this timeout user configurable
-                drv->txrx_counter = 0;
-                drv->task_tmout = chTimeNow() + MS2ST(100);
-                drv->state = RFM12B_RX_ACTIVE;
-                break;
-            case RFM12B_RX_ACTIVE:
-                if (drv->txrx_counter < (sizeof(drv->txrx_buff) - 6)) {
-                    // store previously read data
-                    drv->txrx_buff[drv->txrx_counter] = drv->txrx_data & 0xFF;
-                    // read next data
-                    spiUnselectI(drv->config->spi_drv);
-                    drv->txrx_data = RFM12B_RX_READ;
-                    spiSelectI(drv->config->spi_drv);
-                    spiStartExchangeI(drv->config->spi_drv,
-                                      1, &drv->txrx_data, &drv->txrx_data);
-                    // calculate crc
-                    if (drv->txrx_counter < sizeof(radio_packet_t)) {
-                        CRC->DR = drv->txrx_buff[drv->txrx_counter];
-                    }
-                    drv->txrx_counter++;
-                } else {
-                    spiUnselectI(drv->config->spi_drv);
-                    chBSemSignalI(&drv->flag);
-                    drv->state = RFM12B_RX_COMPLETE;
-                }
-                break;
-            case RFM12B_RX_COMPLETE:
-            case RFM12B_TX_INIT:
-                break;
-            case RFM12B_TX_ACTIVE:
-                if (drv->txrx_counter < sizeof(drv->txrx_buff)) {
-                    spiUnselectI(drv->config->spi_drv);
-                    drv->txrx_data = RFM12B_TX_WRITE | drv->txrx_buff[drv->txrx_counter];
-                    spiSelectI(drv->config->spi_drv);
-                    spiStartSendI(drv->config->spi_drv,
-                                  1, &drv->txrx_data);
-                    drv->txrx_counter++;
-                    // calculate crc
-                    if (drv->txrx_counter <= sizeof(radio_packet_t)) {
-                        CRC->DR = drv->txrx_buff[drv->txrx_counter + 5];
-                    } else if (drv->txrx_counter == sizeof(radio_packet_t) + 1) {
-                        crc = CRC->DR;
-                        drv->txrx_buff[drv->txrx_counter + 8] = (crc >> 24) & 0xFF;
-                        drv->txrx_buff[drv->txrx_counter + 7] = (crc >> 16) & 0xFF;
-                        drv->txrx_buff[drv->txrx_counter + 6] = (crc >> 8) & 0xFF;
-                        drv->txrx_buff[drv->txrx_counter + 5] = crc & 0xFF;
-                    }
-                } else {
-                    spiUnselectI(drv->config->spi_drv);
-                    chBSemSignalI(&drv->flag);
-                    drv->state = RFM12B_TX_COMPLETE;
-                }
-                break;
-            case RFM12B_TX_COMPLETE:
-                break;
-        }
-        lldUnlockISR(&drv->lock);
-    } else {
-        // in case something went wrong
-        chSysLockFromIsr();
-        drv->error = true;
-        chSysUnlockFromIsr();
-        chBSemSignalI(&drv->flag);
+    if (ithacaLockISR(&radio->lld_driver.rfm12b.lock) == false) {
+        return;
     }
-} 
-
-/*
- * @brief   RFM12B thread.
- * @details This thread performs switch between different states
-            of RFM12B module. It also executes defined callbacks.
- */
-//__attribute__((noreturn))
-static void RFM12BThread(void *arg) {
-    // 
-    uint32_t crc, *crc_ptr;
-    RFM12BDriver *drv = (RFM12BDriver*)arg;
-    radio_callback_t cb = NULL;
     //
-    chRegSetThreadName("RFM12BThread");
-    consoleDebug("rfm12b start\r\n");
-    //
-    while (!chThdShouldTerminate()) {
-        chBSemWaitTimeout(&drv->flag, MS2ST(5));
-        cb = NULL;
-        if (lldLockWaitTimeout(&drv->lock, 2) == true) {
-            chSysLock();
-            if (drv->error == true) {
-                drv->state = RFM12B_IDLE;
-                drv->error = false;
-                chSysUnlock();
-                consoleDebug("\r\n\r\n\r\n ********** recovery from ISR locking error **********\r\n\r\n\r\n");
-            } else {
-                chSysUnlock();
-            }
-            switch (drv->state) {
-                case RFM12B_UNINIT:
-                    consoleDebug("RFM12B_UNINIT\r\n");
-                    break;
-                case RFM12B_STOP:
-                    consoleDebug("RFM12B_STOP\r\n");
-                    drv->state = RFM12B_IDLE;
-                    break;
-                case RFM12B_IDLE:
-                    // put radio into idle mode
-                    rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
-                                     RFM12B_CONFIGURATION_BAND868_IDLE);
-                    rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
-                                     RFM12B_POWER_MANAGEMENT_IDLE_MODE);
-                    cb = drv->config->idle_cb;
-                    consoleDebug("RFM12B_IDLE\r\n");
-                    break;
-                case RFM12B_RX_INIT:
-                    //
-                    if (drv->config->recv_timeout != 0) {
-                        drv->task_tmout = chTimeNow() + MS2ST(drv->config->recv_timeout);
-                    } else {
-                        drv->task_tmout = 0;
-                    }
-                    // reconfigure RFM12B module
-                    rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
-                                     RFM12B_CONFIGURATION_BAND868_RX);
-                    rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
-                                     RFM12B_POWER_MANAGEMENT_RX_MODE);
-                    // clear interrupts
-                    rfm12b_lld_status(drv);
-                    // reset fifo
-                    rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0x0081);
-                    rfm12b_lld_write(drv, RFM12B_FIFO_RESET_MODE, 0x0083);
-                    // change driver state
-                    drv->txrx_counter = 0;
-                    chBSemSignal(&drv->flag);
-                    consoleDebug("RFM12B_RX_START\r\n");
-                    drv->state = RFM12B_RX_START;
-                    break;
-                case RFM12B_RX_START:
-                case RFM12B_RX_ACTIVE:
-                    if ((drv->task_tmout != 0) &&
-                        (drv->task_tmout <= chTimeNow())) {
-                            cb = drv->config->recv_error_cb;
-                            chBSemSignal(&drv->flag);
-                            consoleDebug("RFM12B_RX_START/ACTIVE: timeout %d\r\n", drv->txrx_counter);
-                            drv->state = RFM12B_IDLE;
-                            break;
-                    }
-                    break;
-                case RFM12B_RX_COMPLETE:
-                    // get received crc
-                    crc_ptr = (uint32_t *)(drv->txrx_buff + sizeof(radio_packet_t));
-                    // read crc, disable hardware module, check if crc correct
-                    crc = CRC->DR;
-                    if (crc != *crc_ptr) {
-                        cb = drv->config->recv_error_cb;
-                        chBSemSignal(&drv->flag);
-                        consoleDebug("RFM12B_RX_COMPLETE: crc != crc_recv - %8X vs %8X\r\n", crc, *crc_ptr);
-                        drv->state = RFM12B_IDLE;
-                    } else {
-                        cb = drv->config->recv_done_cb;
-                        chBSemSignal(&drv->flag);
-                        consoleDebug("RFM12B_RX_COMPLETE: crc ok\r\n");
-                        drv->state = RFM12B_IDLE;
-                    }
-                    break;
-                case RFM12B_TX_INIT:
-                    //
-                    if (drv->config->recv_timeout != 0) {
-                        drv->task_tmout = chTimeNow() + MS2ST(drv->config->recv_timeout);
-                    } else {
-                        drv->task_tmout = 0;
-                    }
-                    //
-                    CRC->CR = (uint32_t)0x01;
-                    // clear el, et bits
-                    rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
-                                     RFM12B_CONFIGURATION_BAND868_IDLE);
-                    rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
-                                     RFM12B_POWER_MANAGEMENT_IDLE_MODE);
-                    // clear interrupts
-                    rfm12b_lld_status(drv);
-                    // initialize driver state for tx
-                    drv->txrx_counter = 0;
-                    chBSemSignal(&drv->flag);
-                    consoleDebug("RFM12B_TX_INIT\r\n");
-                    drv->state = RFM12B_TX_ACTIVE;
-                    // switch to tx mode
-                    rfm12b_lld_write(drv, RFM12B_CONFIGURATION,
-                                     RFM12B_CONFIGURATION_BAND868_TX);
-                    rfm12b_lld_write(drv, RFM12B_POWER_MANAGEMENT,
-                                     RFM12B_POWER_MANAGEMENT_TX_MODE);
-                    //
-                    break;
-                case RFM12B_TX_ACTIVE:
-                    if ((drv->task_tmout != 0) &&
-                        (drv->task_tmout <= chTimeNow())) {
-                            cb = drv->config->send_error_cb;
-                            chBSemSignal(&drv->flag);
-                            consoleDebug("RFM12B_TX_ACTIVE: timeout (%d)\r\n", drv->txrx_counter);
-                            drv->state = RFM12B_IDLE;
-                            break;
-                    }
-                    break;
-                case RFM12B_TX_COMPLETE:
-                    // run call back
-                    cb = drv->config->send_done_cb;
-                    chBSemSignal(&drv->flag);
-                    consoleDebug("RFM12B_TX_COMPLETE\r\n");
-                    drv->state = RFM12B_IDLE;
-                    break;
-            }
-            if (cb != NULL ) {
-                cb(drv, (radio_packet_t *)drv->txrx_buff, drv->arg);
-            }
-            lldUnlock(&drv->lock);
+    if (((radio->lld_driver.rfm12b.state >= RFM12B_RX_START) &&
+         (radio->lld_driver.rfm12b.state < RFM12B_RX_COMPLETE)) ||
+        ((radio->lld_driver.rfm12b.state >= RFM12B_TX_START) &&
+         (radio->lld_driver.rfm12b.state < RFM12B_TX_COMPLETE))) {
+        if ((radio->lld_driver.rfm12b.state >= RFM12B_TX_START) &&
+            (radio->lld_driver.rfm12b.state < RFM12B_TX_COMPLETE)) {
+            radio->lld_driver.rfm12b.spi_cfg.end_cb = rfm12b_lld_spi_handler_tx;
         } else {
-            chBSemSignal(&drv->flag);
+            radio->lld_driver.rfm12b.spi_cfg.end_cb = rfm12b_lld_spi_handler_rx;
         }
+        radio->lld_driver.rfm12b.spi_xfer_last = false;
+        radio->lld_driver.rfm12b.txrx_data = RFM12B_STATUS;
+        spiSelectI(radio->config->lld_config.rfm12b->spi_drv);
+        spiStartExchangeI(radio->config->lld_config.rfm12b->spi_drv,
+            1, &radio->lld_driver.rfm12b.txrx_data,
+            &radio->lld_driver.rfm12b.txrx_data);
     }
-    //
-    chThdExit(1);
-}
-
-/*
- * @brief   rfm12b ...
- */
-inline void rfm12bRecvStartS(RFM12BDriver *drv, void *arg) {
-    drv->state = RFM12B_RX_INIT;
-    drv->arg = arg;
-    chBSemSignal(&drv->flag);
-}
-
-/*
- * @brief   rfm12b ...
- */
-bool rfm12bRecvStart(RFM12BDriver *drv, void *arg) {
-    // make sure no-one will interrupt
-    if (lldLockWaitTimeout(&drv->lock, 2) == true) {
-        rfm12bRecvStartS(drv, arg);
-        lldUnlock(&drv->lock);
-        return true;
-    } else {
-        return false;
-    }
-}
-
-/*
- * @brief   rfm12b ...
- */
-inline void rfm12bSendStartS(RFM12BDriver *drv, radio_packet_t *packet, void *arg) {
-    //
-    uint8_t i;
-    // prepare data to send
-    i = 0;
-    drv->txrx_buff[i++] = 0xAA;
-    drv->txrx_buff[i++] = 0xAA;
-    drv->txrx_buff[i++] = 0xAA;
-    drv->txrx_buff[i++] = 0xAA;
-    drv->txrx_buff[i++] = 0x2D;
-    drv->txrx_buff[i++] = drv->config->group_id;
-    memcpy(drv->txrx_buff + i, packet, sizeof(radio_packet_t));
-    //
-    drv->arg = arg;
-    drv->state = RFM12B_TX_INIT;
-    chBSemSignal(&drv->flag);
-}
-
-/*
- * @brief   rfm12b ...
- */
-bool rfm12bSendStart(RFM12BDriver *drv, radio_packet_t *packet, void *arg) {
-    // make sure no-one will interrupt now
-    if (lldLockWaitTimeout(&drv->lock, 2) == true) {
-        rfm12bSendStartS(drv, packet, arg);
-        lldUnlock(&drv->lock);
-        return true;
-    } else {
-        return false;
-    }
+    ithacaUnlockISR(&radio->lld_driver.rfm12b.lock);
 }
 
 /*
  * @brief   ...
  * @details ...
  */
-bool rfm12bInit(RFM12BDriver *drv, RFM12BConfig *config, void *arg) {
+bool rfm12b_lld_init(RadioDriver *radio) {
     //
-    consoleDebug("rfm12bInit start\r\n");
-    //
-    chSysLock();
-    // driver synchronization variables
-    chBSemInit(&drv->flag, 0);
-    // driver structures
-    drv->state = RFM12B_UNINIT;
-    drv->config = config;
-    drv->arg = arg;
-    //
-    chSysUnlock();
-    //
-    if (drv->config->ext_drv->state != EXT_ACTIVE) {
-        consoleDebug("rfm12bInit EXT driver not started\r\n");
+    consoleDevel("rfm12b_lld_init() start\r\n");
+    if (ithacaLockTimeout(&radio->lld_driver.rfm12b.lock, 5) == false) {
+        consoleDevel("rfm12b_lld_init() lock failed\r\n");
         return false;
     }
-    // enable hardware crc32
-    RCC->AHBENR |= RCC_AHBENR_CRCEN;
+    radio->lld_driver.rfm12b.state = RFM12B_UNINIT;
     //
-    if (!rfm12b_lld_init_io(drv) ||
-        !rfm12b_lld_init_module(drv) ||
-        !rfm12b_lld_init_setup(drv)) {
-        consoleWarn("rfm12bInit failed\r\n");
+    if (radio->config->lld_config.rfm12b->ext_drv->state != EXT_ACTIVE) {
+        ithacaUnlock(&radio->lld_driver.rfm12b.lock);
+        consoleDevel("rfm12b_lld_init() EXT driver not started\r\n");
         return false;
     }
+    if (radio->config->lld_config.rfm12b->preamble_length < 3) {
+        radio->config->lld_config.rfm12b->preamble_length = 3;
+    }
+    if (radio->config->lld_config.rfm12b->postamble_length < 1) {
+        radio->config->lld_config.rfm12b->postamble_length = 1;
+    }
     //
-    lldLock(&drv->lock);
-    chThdCreateStatic(&drv->_wa, sizeof(drv->_wa),
-                      NORMALPRIO + drv->config->priority,
-                      (tfunc_t)RFM12BThread, drv);
-    drv->state = RFM12B_STOP;
-    lldUnlock(&drv->lock);
+    if (!rfm12b_lld_init_io(radio) ||
+        !rfm12b_lld_init_module(radio) ||
+        !rfm12b_lld_init_setup(radio)) {
+        ithacaUnlock(&radio->lld_driver.rfm12b.lock);
+        consoleWarn("rfm12b_lld_init() failed\r\n");
+        return false;
+    }
+    radio->lld_driver.rfm12b.state = RFM12B_STOP;
     //
-    consoleDebug("rfm12bInit end\r\n");
+    ithacaUnlock(&radio->lld_driver.rfm12b.lock);
+    consoleDevel("rfm12b_lld_init() end\r\n");
     return true;
 }
 

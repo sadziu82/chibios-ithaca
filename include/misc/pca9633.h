@@ -186,7 +186,7 @@ typedef struct {
     uint16_t sleep_timeout;
     pca9633_sequence_data_t *sleep_seq;
     systime_t sleep_start;
-    lld_lock_t lock;
+    ithaca_lock_t lock;
 } pca9633_sequence_t;
 
 /*===========================================================================*/
