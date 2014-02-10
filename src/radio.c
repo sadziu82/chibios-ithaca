@@ -205,7 +205,6 @@ static void radio_thread(void *radio_driver) {
         chRegSetThreadName(radio->config->name);
     }
     consoleDebug("started\r\n");
-    tmObjectInit(&radio->tm);
     //
     while (true) {
         consoleDevel("loop start\r\n");
@@ -223,7 +222,7 @@ static void radio_thread(void *radio_driver) {
                     break;
                 case RADIO_STOP:
                     consoleDebug("RADIO_STOP\r\n");
-                    if (radioIdleI(radio, radio->user_arg) == true) {
+                    if (radioIdleI(radio) == true) {
                         consoleDevel("stop -> idle ok\r\n");
                     } else {
                         consoleWarn("stop -> idle failed\r\n");
@@ -280,7 +279,7 @@ static void radio_thread(void *radio_driver) {
                     break;
                 case RADIO_ERROR:
                     consoleDebug("RADIO_ERROR\r\n");
-                    if (radioIdleI(radio, radio->user_arg) == true) {
+                    if (radioIdleI(radio) == true) {
                         consoleDevel("error -> idle ok\r\n");
                     } else {
                         consoleWarn("eror -> idle failed\r\n");
@@ -290,7 +289,7 @@ static void radio_thread(void *radio_driver) {
             }
             if (cb != NULL ) {
                 consoleDevel("callback execute\r\n");
-                cb(radio, &radio->packet);
+                cb(radio);
             }
             ithacaUnlock(&radio->lock);
         }
@@ -332,7 +331,7 @@ void radioInit(RadioDriver *radio, RadioConfig *config, void *user_arg) {
  * @brief   ...
  * @details ...
  */
-bool radioIdleI(RadioDriver *radio, void *arg) {
+bool radioIdleI(RadioDriver *radio) {
     consoleDevel("radioIdleI() start\r\n");
     if (radio_lld_idle(radio) == true) {
         radio->state = RADIO_IDLE;
@@ -349,7 +348,7 @@ bool radioIdleI(RadioDriver *radio, void *arg) {
  * @brief   ...
  * @details ...
  */
-bool radioIdle(RadioDriver *radio, void *arg) {
+bool radioIdle(RadioDriver *radio) {
     //
     bool ret;
     //
@@ -358,7 +357,7 @@ bool radioIdle(RadioDriver *radio, void *arg) {
         consoleWarn("radioIdle() failed\r\n");
         return false;
     }
-    ret = radioIdleI(radio, arg);
+    ret = radioIdleI(radio);
     ithacaUnlock(&radio->lock);
     consoleDevel("radioIdle() end == %s\r\n", ret ? "true" : "false");
     return ret;
@@ -368,7 +367,7 @@ bool radioIdle(RadioDriver *radio, void *arg) {
  * @brief   ...
  * @details ...
  */
-bool radioRecvStartI(RadioDriver *radio, void *arg) {
+bool radioRecvStartI(RadioDriver *radio) {
     consoleDevel("radioRecvStartS() start\r\n");
     if (radio_lld_receive_start(radio) == true) {
         radio->state = RADIO_RX;
@@ -385,7 +384,7 @@ bool radioRecvStartI(RadioDriver *radio, void *arg) {
  * @brief   ...
  * @details ...
  */
-bool radioRecvStart(RadioDriver *radio, void *arg) {
+bool radioRecvStart(RadioDriver *radio) {
     //
     bool ret;
     //
@@ -394,7 +393,7 @@ bool radioRecvStart(RadioDriver *radio, void *arg) {
         consoleWarn("radioRecvStart() failed\r\n");
         return false;
     }
-    ret = radioRecvStartI(radio, arg);
+    ret = radioRecvStartI(radio);
     ithacaUnlock(&radio->lock);
     consoleDevel("radioRecvStart() end == %s\r\n", ret ? "true" : "false");
     return ret;
@@ -404,8 +403,9 @@ bool radioRecvStart(RadioDriver *radio, void *arg) {
  * @brief   ...
  * @details ...
  */
-bool radioSendStartI(RadioDriver *radio, radio_packet_t *packet, void *arg) {
+bool radioSendStartI(RadioDriver *radio, radio_packet_t *packet) {
     consoleDevel("radioSendStartS() start\r\n");
+    memcpy(&radio->packet, packet, sizeof(radio_packet_t));
     if (radio_lld_send_start(radio) == true) {
         radio->state = RADIO_TX;
         consoleDevel("radioSendStartS() end\r\n");
@@ -421,7 +421,7 @@ bool radioSendStartI(RadioDriver *radio, radio_packet_t *packet, void *arg) {
  * @brief   ...
  * @details ...
  */
-bool radioSendStart(RadioDriver *radio, radio_packet_t *packet, void *arg) {
+bool radioSendStart(RadioDriver *radio, radio_packet_t *packet) {
     //
     bool ret;
     //
@@ -430,10 +430,20 @@ bool radioSendStart(RadioDriver *radio, radio_packet_t *packet, void *arg) {
         consoleWarn("radioSendStart() failed\r\n");
         return false;
     }
-    ret = radioSendStartI(radio, packet, arg);
+    ret = radioSendStartI(radio, packet);
     ithacaUnlock(&radio->lock);
     consoleDevel("radioSendStart() end == %s\r\n", ret ? "true" : "false");
     return ret;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void setTimeout(RadioDriver *radio, uint16_t timeout) {
+    //
+    radio->config->timeout = timeout;
+    consoleDevel("setTimeout(%d)\r\n", timeout);
 }
 
 #endif /* ITHACA_USE_RADIO */

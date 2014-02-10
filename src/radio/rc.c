@@ -10,17 +10,6 @@
 /* Driver exported variables.                                                */
 /*===========================================================================*/
 
-/*
- * @brief   ...
- * @details ...
- */
-RCDriver RCD1 = {
-    .lock = {
-        .name = "RCD1",
-        .flag = false,
-    },
-};
-
 /*===========================================================================*/
 /* Driver local variables and types.                                         */
 /*===========================================================================*/
@@ -32,141 +21,103 @@ RCDriver RCD1 = {
 /*
  * @brief   rc idle callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_rc_idle_cb(RFM12BDriver *drv,
-                   radio_packet_t *rf_packet,
-                   void *arg) {
-#endif
-    (void)rf_packet;
-    RCDriver *rcp = (RCDriver *)arg;
-    lldLock(&rcp->lock);
+void radio_rc_idle_cb(RadioDriver *radio) {
+    RCDriver *rcp = (RCDriver *)radio->user_arg;
+    if (ithacaLockTimeout(&rcp->lock, 5) == false) {
+        return;
+    }
     // start next receive
     if (rcp->state == RC_SLAVE) {
         consoleDebug("RC(radio_rc_idle_cb)\r\n");
-#ifdef ITHACA_USE_RADIO_RFM12B
-        rfm12bRecvStartS(drv, arg);
-#endif
+        radioRecvStartI(radio);
     } else if (rcp->state == RC_MASTER) {
-        chThdSleepMilliseconds(2);
+        // TODO chThdSleepMilliseconds(2);
         consoleDebug("RC(radio_rc_idle_cb) RC_MASTER\r\n");
-#ifdef ITHACA_USE_RADIO_RFM12B
-        rfm12bSendStartS(drv, (radio_packet_t *)&rcp->rc_packet, arg);
-#endif
+        radioSendStartI(radio, (radio_packet_t *)&rcp->rc_packet);
     }
-    lldUnlock(&rcp->lock);
+    ithacaUnlock(&rcp->lock);
 }
 
 /*
  * @brief   rc recv callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_rc_recv_done_cb(RFM12BDriver *drv,
-                        radio_packet_t *rf_packet,
-                        void *arg) {
-#endif
+void radio_rc_recv_done_cb(RadioDriver *radio) {
     //
-    (void)rf_packet;
-    RCDriver *rcp = (RCDriver *)arg;
-    if (lldLock(&rcp->lock) == true) {
-        memcpy(&rcp->rc_packet, rf_packet, sizeof(rc_packet_t));
-        if (rcp->state == RC_SLAVE) {
-            if (rcp->rc_packet.target_id == rcp->config->self_id) {
-                if (rcp->config->slave_cb != NULL) {
-                    rcp->config->slave_cb(rcp, &rcp->rc_packet);
-                }
-                rcp->rc_packet.target_id = rcp->config->peer_id;
-                rcp->rc_packet.sender_id = rcp->config->self_id;
-                consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE got packet\r\n");
-#ifdef ITHACA_USE_RADIO_RFM12B
-                // allow remote side to switch from tx to rx
-                chThdSleepMilliseconds(2);
-                rfm12bSendStartS(drv, (radio_packet_t *)&rcp->rc_packet, arg);
-#endif
-            } else {
-                consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE ignoring packet\r\n");
-////     #ifdef ITHACA_USE_RADIO_RFM12B
-////                 rfm12bRecvStartS(drv, arg);
-////     #endif
-            }
-        } else if (rcp->state == RC_MASTER) {
-            if (rcp->rc_packet.target_id == rcp->config->self_id) {
-                if (rcp->config->master_cb != NULL) {
-                    rcp->config->master_cb(rcp, &rcp->rc_packet);
-                }
-                consoleDebug("RC(radio_rc_recv_done_cb) RC_MASTER got packet\r\n");
-            } else {
-                consoleDebug("RC(radio_rc_recv_done_cb) RC_MASTER ignoring packet\r\n");
-            }
-////     #ifdef ITHACA_USE_RADIO_RFM12B
-////             drv->config->recv_timeout = 0;
-////             rfm12bRecvStartS(drv, arg);
-////     #endif
-        }
-        lldUnlock(&rcp->lock);
+    RCDriver *rcp = (RCDriver *)radio->user_arg;
+    if (ithacaLockTimeout(&rcp->lock, 5) == false) {
+        return;
     }
+    // TODO memcpy(&rcp->rc_packet, rf_packet, sizeof(rc_packet_t));
+    if (rcp->state == RC_SLAVE) {
+        if (rcp->rc_packet.target_id == rcp->config->self_id) {
+            if (rcp->config->slave_cb != NULL) {
+                rcp->config->slave_cb(radio);
+            }
+            rcp->rc_packet.target_id = rcp->config->peer_id;
+            rcp->rc_packet.sender_id = rcp->config->self_id;
+            consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE got packet\r\n");
+            // TODO chThdSleepMilliseconds(2);
+            radioSendStartI(radio, (radio_packet_t *)&rcp->rc_packet);
+        } else {
+            consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE ignoring packet\r\n");
+        }
+    } else if (rcp->state == RC_MASTER) {
+        if (rcp->rc_packet.target_id == rcp->config->self_id) {
+            if (rcp->config->master_cb != NULL) {
+                rcp->config->master_cb(radio);
+            }
+            consoleDebug("RC(radio_rc_recv_done_cb) RC_MASTER got packet\r\n");
+        } else {
+            consoleDebug("RC(radio_rc_recv_done_cb) RC_MASTER ignoring packet\r\n");
+        }
+    }
+    ithacaUnlock(&rcp->lock);
 }
 
 /*
  * @brief   rc recv callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_rc_recv_error_cb(RFM12BDriver *drv,
-                          radio_packet_t *rf_packet,
-                          void *arg) {
-#endif
-    (void)rf_packet;
-    RCDriver *rcp = (RCDriver *)arg;
-    if (lldLock(&rcp->lock) == true) {
+void radio_rc_recv_error_cb(RadioDriver *radio) {
+    RCDriver *rcp = (RCDriver *)radio->user_arg;
+    if (ithacaLock(&rcp->lock) == true) {
         if (rcp->config->error_cb != NULL) {
-            rcp->config->error_cb(rcp, NULL);
+            rcp->config->error_cb(radio);
+        } else {
+            radioIdleI(radio);
         }
         // start next receive
         consoleDebug("RC(radio_rc_recv_error_cb)\r\n");
-//// #ifdef ITHACA_USE_RADIO_RFM12B
-////         drv->config->recv_timeout = 0;
-////         rfm12bRecvStartS(drv, arg);
-//// #endif
-        lldUnlock(&rcp->lock);
+        ithacaUnlock(&rcp->lock);
     }
 }
 
 /*
  * @brief   rc send callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_rc_send_done_cb(RFM12BDriver *drv,
-                         radio_packet_t *rf_packet,
-                         void *arg) {
-#endif
-    (void)rf_packet;
-    RCDriver *rcp = (RCDriver *)arg;
-    if (lldLock(&rcp->lock) == true) {
+void radio_rc_send_done_cb(RadioDriver *radio) {
+    RCDriver *rcp = (RCDriver *)radio->user_arg;
+    if (ithacaLock(&rcp->lock) == true) {
         if (rcp->state == RC_MASTER) {
-#ifdef ITHACA_USE_RADIO_RFM12B
-            rfm12bRecvStartS(drv, arg);
-#endif
+            radioRecvStartI(radio);
         }
         consoleDebug("RC(radio_rc_send_done_cb)\r\n");
-        lldUnlock(&rcp->lock);
+        ithacaUnlock(&rcp->lock);
     }
 }
 
 /*
  * @brief   rc send callback
  */
-#ifdef ITHACA_USE_RADIO_RFM12B
-void radio_rc_send_error_cb(RFM12BDriver *drv,
-                          radio_packet_t *rf_packet,
-                          void *arg) {
-#endif
-    (void)rf_packet;
-    RCDriver *rcp = (RCDriver *)arg;
-    if (lldLock(&rcp->lock) == true) {
+void radio_rc_send_error_cb(RadioDriver *radio) {
+    RCDriver *rcp = (RCDriver *)radio->user_arg;
+    if (ithacaLock(&rcp->lock) == true) {
         if (rcp->config->error_cb != NULL) {
-            rcp->config->error_cb(rcp, NULL);
+            rcp->config->error_cb(radio);
+        } else {
+            radioIdleI(radio);
         }
         consoleDebug("RC(radio_rc_send_error_cb)\r\n");
-        lldUnlock(&rcp->lock);
+        ithacaUnlock(&rcp->lock);
     }
 }
 
@@ -191,11 +142,9 @@ bool rcInit(RCDriver *rcp, RCConfig *config) {
     rcp->config->radio_cfg->send_error_cb = radio_rc_send_error_cb;
     rcp->state = RC_STOP;
     chSysUnlock();
-    lldLock(&rcp->lock);
-#ifdef ITHACA_USE_RADIO_RFM12B
-    rfm12bInit(rcp->config->radio_drv, rcp->config->radio_cfg, rcp);
-#endif
-    lldUnlock(&rcp->lock);
+    ithacaLock(&rcp->lock);
+    radioInit(rcp->config->radio_drv, rcp->config->radio_cfg, rcp);
+    ithacaUnlock(&rcp->lock);
     //
     consoleDebug("rcInit end\r\n");
     //
@@ -210,23 +159,20 @@ bool rcStartMaster(RCDriver *rcp) {
     //
     consoleDebug("rcStartMaster start\r\n");
     //
-    lldLock(&rcp->lock);
+    ithacaLock(&rcp->lock);
     if ((rcp->state != RC_STOP) &&
         (rcp->state != RC_SLAVE)) {
         consoleDebug("rcStartSlave failed\r\n");
-        lldUnlock(&rcp->lock);
+        ithacaUnlock(&rcp->lock);
         return false;
     }
     //
-//// #ifdef ITHACA_USE_RADIO_RFM12B
-////     rfm12bRecvStart(rcp->config->radio_drv, rcp);
-//// #endif
     consoleDebug("rcStartMaster end\r\n");
     rcp->rc_packet.target_id = rcp->config->peer_id;
     rcp->rc_packet.sender_id = rcp->config->self_id;
-    rcp->config->radio_cfg->recv_timeout = 20;
+    radioSetTimeout(rcp->config->radio_drv, 20);
     rcp->state = RC_MASTER;
-    lldUnlock(&rcp->lock);
+    ithacaUnlock(&rcp->lock);
     //
     //
     return true;
@@ -240,21 +186,19 @@ bool rcStartSlave(RCDriver *rcp) {
     //
     consoleDebug("rcStartSlave start\r\n");
     //
-    lldLock(&rcp->lock);
+    ithacaLock(&rcp->lock);
     if ((rcp->state != RC_STOP) &&
         (rcp->state != RC_SLAVE)) {
         consoleDebug("rcStartSlave failed\r\n");
-        lldUnlock(&rcp->lock);
+        ithacaUnlock(&rcp->lock);
         return false;
     }
     //
-#ifdef ITHACA_USE_RADIO_RFM12B
-    rfm12bRecvStart(rcp->config->radio_drv, rcp);
-#endif
+    radioRecvStart(rcp->config->radio_drv);
     consoleDebug("rcStartSlave end\r\n");
-    rcp->config->radio_cfg->recv_timeout = 50;
+    radioSetTimeout(rcp->config->radio_drv, 50);
     rcp->state = RC_SLAVE;
-    lldUnlock(&rcp->lock);
+    ithacaUnlock(&rcp->lock);
     //
     //
     return true;
@@ -268,9 +212,10 @@ bool rcStop(RCDriver *rcp) {
     //
     consoleDebug("rcStop start\r\n");
     //
-    lldLock(&rcp->lock);
+    ithacaLock(&rcp->lock);
+    radioIdle(rcp->config->radio_drv);
     rcp->state = RC_STOP;
-    lldUnlock(&rcp->lock);
+    ithacaUnlock(&rcp->lock);
     //
     consoleDebug("rcStop end\r\n");
     //

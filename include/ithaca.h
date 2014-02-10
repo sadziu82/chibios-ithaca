@@ -80,7 +80,6 @@ bool ithacaLockISR(ithaca_lock_t *lock);
 void ithacaUnlockISR(ithaca_lock_t *lock);
 //
 extern EXTConfig ext1_cfg;
-extern void *ext1_ptr[EXT_MAX_CHANNELS];
 #ifdef __cplusplus
 }
 #endif

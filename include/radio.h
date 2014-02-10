@@ -44,13 +44,19 @@ typedef struct {
  * @brief   ...
  * @details ...
  */
+typedef struct RadioConfig RadioConfig;
+
+/*
+ * @brief   ...
+ * @details ...
+ */
 typedef struct RadioDriver RadioDriver;
 
 /*
  * @brief   ...
  * @details ...
  */
-typedef void(* radio_callback_t)(RadioDriver *radio, radio_packet_t *packet);
+typedef void(* radio_callback_t)(RadioDriver *radio);
 
 /*
  * @brief   ...
@@ -127,7 +133,7 @@ typedef union {
  * @brief   ...
  * @details ...
  */
-typedef struct {
+typedef struct RadioConfig {
     //
     char *name;
     uint16_t timeout;
@@ -156,7 +162,6 @@ typedef struct RadioDriver {
     WORKING_AREA(radio_thread_working_area, 256);
     Thread *tp;
     void *user_arg;
-    TimeMeasurement tm;
 } RadioDriver;
 
 /*===========================================================================*/
@@ -171,15 +176,16 @@ typedef struct RadioDriver {
 extern "C" {
 #endif
 void radioInit(RadioDriver *radio, RadioConfig *config, void *arg);
-bool radioIdleI(RadioDriver *radio, void *arg);
-bool radioRecvStartI(RadioDriver *radio, void *arg);
-bool radioRecvStart(RadioDriver *radio, void *arg);
-bool radioSendStartI(RadioDriver *radio, radio_packet_t *packet, void *arg);
-bool radioSendStart(RadioDriver *radio, radio_packet_t *packet, void *arg);
-bool radioIdle(RadioDriver *radio, void *arg);
+bool radioIdleI(RadioDriver *radio);
+bool radioRecvStartI(RadioDriver *radio);
+bool radioRecvStart(RadioDriver *radio);
+bool radioSendStartI(RadioDriver *radio, radio_packet_t *packet);
+bool radioSendStart(RadioDriver *radio, radio_packet_t *packet);
+bool radioIdleI(RadioDriver *radio);
+bool radioIdle(RadioDriver *radio);
 //bool radioRecv(RadioDriver *radio, radio_packet_t *packet, void *arg);
 //bool radioSend(RadioDriver *radio, radio_packet_t *packet, void *arg);
-//void radioSetTimeout(RadioDriver *radio, systime_t timeout);
+void radioSetTimeout(RadioDriver *radio, uint16_t timeout);
 //void radioSetFrequency(RadioDriver *radio, radio_frequency_t frequency);
 //void radioSetDataRate(RadioDriver *radio, radio_data_rate_t data_rate);
 #ifdef __cplusplus

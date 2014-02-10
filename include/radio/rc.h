@@ -3,11 +3,6 @@
 
 #if ITHACA_USE_RADIO_RC || defined(__DOXYGEN__)
 
-#if ITHACA_USE_RADIO_RFM12B || ITHACA_USE_RADIO_RFM22B
-#else
-    #error Low level radio driver not defined
-#endif
-
 /*===========================================================================*/
 /* Driver constants.                                                         */
 /*===========================================================================*/
@@ -71,25 +66,17 @@ typedef enum {
  * @brief   ...
  * @details ...
  */
-typedef void(* rc_callback_t)(RCDriver *rcp, rc_packet_t *packet);
-
-/*
- * @brief   ...
- * @details ...
- */
 typedef struct {
     //
     uint8_t self_id;
     uint8_t peer_id;
     // callbacks
-    rc_callback_t slave_cb;
-    rc_callback_t master_cb;
-    rc_callback_t error_cb;
-    // low level radio driver
-#ifdef ITHACA_USE_RADIO_RFM12B
-    RFM12BDriver *radio_drv;
-    RFM12BConfig *radio_cfg;
-#endif
+    radio_callback_t slave_cb;
+    radio_callback_t master_cb;
+    radio_callback_t error_cb;
+    // radio driver
+    RadioConfig *radio_cfg;
+    RadioDriver *radio_drv;
 } RCConfig;
 
 /*
@@ -103,7 +90,7 @@ typedef struct RCDriver {
     // ...
     rc_packet_t rc_packet;
     Semaphore flag;
-    lld_lock_t lock;
+    ithaca_lock_t lock;
 } RCDriver;
 
 /*===========================================================================*/
@@ -113,9 +100,6 @@ typedef struct RCDriver {
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
-
-//
-extern RCDriver RCD1;
 
 #ifdef __cplusplus
 extern "C" {

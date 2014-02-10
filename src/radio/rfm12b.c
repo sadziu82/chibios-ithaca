@@ -248,7 +248,7 @@ static bool rfm12b_lld_init_io(RadioDriver *radio) {
     spiStart(radio->config->lld_config.rfm12b->spi_drv,
              &radio->lld_driver.rfm12b.spi_cfg);
     // interupt handler
-    radio->config->lld_config.rfm12b->ext_drv->user_ptr = radio;
+    radio->config->lld_config.rfm12b->ext_drv->user_ptr[radio->config->lld_config.rfm12b->nirq_pin] = radio;
     radio->lld_driver.rfm12b.nirq_cfg.mode = EXT_CH_MODE_FALLING_EDGE |
                                              radio->config->lld_config.rfm12b->ext_mode;
     radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
@@ -697,7 +697,7 @@ static void rfm12b_lld_nirq_handler(EXTDriver *extp, expchannel_t channel) {
     (void)channel;
     RadioDriver *radio;
     //
-    radio = extp->user_ptr;
+    radio = extp->user_ptr[channel];
     if (radio == NULL) {
         return;
     }
