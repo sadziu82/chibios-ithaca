@@ -106,7 +106,7 @@ extern "C" {
 #endif
 //
 bool rcInit(RCDriver *drv, RCConfig *config);
-bool rcStartMaster(RCDriver *drv);
+bool rcStartMaster(RCDriver *drv, rc_packet_t *packet);
 bool rcStartSlave(RCDriver *drv);
 bool rcStop(RCDriver *drv);
 #ifdef __cplusplus

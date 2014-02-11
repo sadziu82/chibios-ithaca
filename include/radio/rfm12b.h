@@ -28,14 +28,6 @@ typedef struct RFM12BDriver RFM12BDriver;
  * @brief   ...
  * @details ...
  */
-typedef void(* rfm12b_callback_t)(RFM12BDriver *drv,
-                                  radio_packet_t *rf_packet,
-                                  void *arg);
-
-/*
- * @brief   ...
- * @details ...
- */
 typedef struct {
     // spi driver
     SPIDriver *spi_drv;
@@ -58,16 +50,6 @@ typedef struct {
     uint16_t base_freq;
     uint16_t freq_step;
     uint8_t data_rate;
-    //
-    uint16_t recv_timeout;
-    uint8_t freq_chan;
-    int8_t priority;
-    //
-    rfm12b_callback_t idle_cb;
-    rfm12b_callback_t recv_done_cb;
-    rfm12b_callback_t recv_error_cb;
-    rfm12b_callback_t send_done_cb;
-    rfm12b_callback_t send_error_cb;
 } RFM12BConfig;
 
 /*
@@ -104,15 +86,6 @@ typedef enum {
  * @details ...
  */
 typedef enum {
-    RFM12B_STEP_READ_STATUS = 0,
-    RFM12B_STEP_NOP,
-} rfm12b_step_t;
-
-/*
- * @brief   ...
- * @details ...
- */
-typedef enum {
     // combined settings
     RFM12B_FREQUENCY_876_63 = 0x0CFF,       // 876.63 MHz
 } rfm12b_frequency_t;
@@ -137,7 +110,6 @@ typedef enum {
  */
 typedef struct RFM12BDriver {
     rfm12b_state_t state;
-    rfm12b_step_t step;
     uint8_t txrx_counter;
     uint16_t txrx_data;
     SPIConfig spi_cfg;

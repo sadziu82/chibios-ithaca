@@ -249,7 +249,12 @@ static void radio_thread(void *radio_driver) {
                         }
                         consoleWarn("rx failed\r\n");
                     } else if (radio_lld_receive_is_completed(radio) == true) {
-                        radio->state = RADIO_IDLE;
+                        if (radio->config->recv_done_cb != NULL) {
+                            cb = radio->config->recv_done_cb;
+                        } else {
+                            radio->state = RADIO_IDLE;
+                            consoleDevel("recv_done_cb == NULL\r\n");
+                        }
                         consoleDebug("rx completed ok\r\n");
                     } else {
                         consoleDevel("rx in progress\r\n");
@@ -440,7 +445,7 @@ bool radioSendStart(RadioDriver *radio, radio_packet_t *packet) {
  * @brief   ...
  * @details ...
  */
-void setTimeout(RadioDriver *radio, uint16_t timeout) {
+void radioSetTimeout(RadioDriver *radio, uint16_t timeout) {
     //
     radio->config->timeout = timeout;
     consoleDevel("setTimeout(%d)\r\n", timeout);
