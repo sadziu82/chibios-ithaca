@@ -179,8 +179,6 @@ uint16_t rfm12b_lld_xfer(RadioDriver *radio, const uint16_t cmd) {
     radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
     while (radio->config->lld_config.rfm12b->spi_drv->state == SPI_ACTIVE) {
         consoleDebug("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nXXXXX***** spi in use *****XXXXX\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
-        spiStart(radio->config->lld_config.rfm12b->spi_drv,
-                 &radio->lld_driver.rfm12b.spi_cfg);
         chThdYield();
     }
     spiSelect(radio->config->lld_config.rfm12b->spi_drv);
@@ -708,6 +706,9 @@ static void rfm12b_lld_nirq_handler(EXTDriver *extp, expchannel_t channel) {
     //
     radio = extp->user_ptr[channel];
     if (radio == NULL) {
+        return;
+    }
+    if (radio->config->lld_config.rfm12b->spi_drv->state == SPI_ACTIVE) {
         return;
     }
     if (ithacaLockISR(&radio->lld_driver.rfm12b.lock) == false) {
