@@ -68,8 +68,8 @@ typedef enum {
  */
 typedef struct {
     //
-    uint8_t self_id;
-    uint8_t peer_id;
+    uint16_t self_id;
+    uint16_t peer_id;
     // callbacks
     radio_callback_t slave_cb;
     radio_callback_t master_cb;
@@ -88,8 +88,7 @@ typedef struct RCDriver {
     rc_state_t state;
     RCConfig *config;
     // ...
-    rc_packet_t rc_packet;
-    Semaphore flag;
+    rc_packet_t *rc_packet;
     ithaca_lock_t lock;
 } RCDriver;
 
@@ -107,7 +106,7 @@ extern "C" {
 //
 bool rcInit(RCDriver *drv, RCConfig *config);
 bool rcStartMaster(RCDriver *drv, rc_packet_t *packet);
-bool rcStartSlave(RCDriver *drv);
+bool rcStartSlave(RCDriver *drv, rc_packet_t *packet);
 bool rcStop(RCDriver *drv);
 #ifdef __cplusplus
 }

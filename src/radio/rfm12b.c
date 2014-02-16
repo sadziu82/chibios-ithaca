@@ -155,7 +155,7 @@ static void rfm12b_lld_spi_handler_tx(SPIDriver *spip);
 /*
  * @brief   RFM12B RST line assert.
  */
-void rfm12b_lld_assert_rst(const RadioDriver *radio) {
+void rfm12b_lld_assert_rst(RadioDriver *radio) {
     palClearPad(radio->config->lld_config.rfm12b->rst_port,
                 radio->config->lld_config.rfm12b->rst_pin);
 }
@@ -163,7 +163,7 @@ void rfm12b_lld_assert_rst(const RadioDriver *radio) {
 /*
  * @brief   RFM12B RST line release.
  */
-void rfm12b_lld_release_rst(const RadioDriver *radio) {
+void rfm12b_lld_release_rst(RadioDriver *radio) {
     palSetPad(radio->config->lld_config.rfm12b->rst_port,
               radio->config->lld_config.rfm12b->rst_pin);
 }
@@ -171,25 +171,29 @@ void rfm12b_lld_release_rst(const RadioDriver *radio) {
 /*
  * @brief   Exchange half-word data with RFM12B module.
  */
-uint16_t rfm12b_lld_xfer(const RadioDriver *radio, const uint16_t cmd) {
+uint16_t rfm12b_lld_xfer(RadioDriver *radio, const uint16_t cmd) {
     static uint16_t data;
     data = 0x00;
-    ////while (!((radio->lld_driver.rfm12b.state <= RFM12B_IDLE) ||
-    ////         (radio->lld_driver.rfm12b.state == RFM12B_RX_COMPLETE) ||
-    ////         (radio->lld_driver.rfm12b.state == RFM12B_TX_COMPLETE) ||
-    ////         (radio->lld_driver.rfm12b.state >= RFM12B_RX_ERROR))) {
-    ////    chThdYield();
-    ////}
+    extcallback_t ext_cb = radio->lld_driver.rfm12b.nirq_cfg.cb;
+    // disable spi callback - just in case
+    radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
+    while (radio->config->lld_config.rfm12b->spi_drv->state == SPI_ACTIVE) {
+        consoleDebug("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nXXXXX***** spi in use *****XXXXX\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+        spiStart(radio->config->lld_config.rfm12b->spi_drv,
+                 &radio->lld_driver.rfm12b.spi_cfg);
+        chThdYield();
+    }
     spiSelect(radio->config->lld_config.rfm12b->spi_drv);
     spiExchange(radio->config->lld_config.rfm12b->spi_drv, 1, &cmd, &data);
     spiUnselect(radio->config->lld_config.rfm12b->spi_drv);
+    radio->lld_driver.rfm12b.nirq_cfg.cb = ext_cb;
     return data;
 }
 
 /*
  * @brief   Write one byte data to RFM12B register.
  */
-void rfm12b_lld_write(const RadioDriver *radio,
+void rfm12b_lld_write(RadioDriver *radio,
                       const rfm12b_register_t reg, const uint16_t data) {
     rfm12b_lld_xfer(radio, reg | data);
 }
@@ -199,7 +203,7 @@ void rfm12b_lld_write(const RadioDriver *radio,
  * @details Only status register can be read.
             Others may return undefined results.
  */
-uint8_t rfm12b_lld_read(const RadioDriver *radio) {
+uint8_t rfm12b_lld_read(RadioDriver *radio) {
     //
     return (rfm12b_lld_xfer(radio, RFM12B_RXFIFO_READ) & 0xFF);
 }
@@ -208,7 +212,7 @@ uint8_t rfm12b_lld_read(const RadioDriver *radio) {
  * @brief   Return RFM12B status.
  */
 inline
-uint16_t rfm12b_lld_status(const RadioDriver *radio) {
+uint16_t rfm12b_lld_status(RadioDriver *radio) {
     //
     return rfm12b_lld_xfer(radio, RFM12B_STATUS);
 }
@@ -388,6 +392,8 @@ void rfm12b_lld_idle(RadioDriver *radio) {
         consoleDevel("rfm12b_lld_idle() lock failed\r\n");
         return;
     }
+    // set idle state
+    radio->lld_driver.rfm12b.state = RFM12B_IDLE;
     // clear el, et, er bits
     rfm12b_lld_write(radio, RFM12B_CONFIGURATION,
                      RFM12B_CONFIGURATION_BAND868_IDLE);
@@ -395,8 +401,6 @@ void rfm12b_lld_idle(RadioDriver *radio) {
                      RFM12B_POWER_MANAGEMENT_IDLE_MODE);
     // clear interrupts
     rfm12b_lld_status(radio);
-    // set idle state
-    radio->lld_driver.rfm12b.state = RFM12B_IDLE;
     //
     ithacaUnlock(&radio->lld_driver.rfm12b.lock);
     consoleDevel("rfm12b_lld_idle() end\r\n");
@@ -513,21 +517,23 @@ static void rfm12b_lld_spi_handler_tx(SPIDriver *spip) {
     spiUnselectI(radio->config->lld_config.rfm12b->spi_drv);
     if (radio->lld_driver.rfm12b.spi_xfer_last == true) {
         radio->lld_driver.rfm12b.spi_cfg.end_cb = NULL;
+        radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
         return;
     } else {
         radio->lld_driver.rfm12b.spi_xfer_last = true;
     }
     //
     if (ithacaLockISR(&radio->lld_driver.rfm12b.lock) == false) {
+        radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
         return;
     }
     //
     if ((radio->lld_driver.rfm12b.state >= RFM12B_TX_START) &&
         (radio->lld_driver.rfm12b.state <= RFM12B_TX_COMPLETE)) {
         if (radio->lld_driver.rfm12b.txrx_data & RFM12B_STATUS_TX_UNDERRUN) {
-            radio->packet.data[1]++;
+            // TODO add error handling here
+            radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
         } else if (radio->lld_driver.rfm12b.txrx_data & RFM12B_STATUS_TX_READY) {
-            radio->packet.data[0]++;
             switch (radio->lld_driver.rfm12b.state) {
                 case RFM12B_TX_START:
                     radio->lld_driver.rfm12b.txrx_counter = 2;
@@ -557,7 +563,6 @@ static void rfm12b_lld_spi_handler_tx(SPIDriver *spip) {
                 case RFM12B_TX_DATA:
                     // update crc data
                     CRC->DR = radio->packet.data[radio->lld_driver.rfm12b.txrx_counter];
-                    // TODO write real data here
                     radio->lld_driver.rfm12b.txrx_data = RFM12B_TXFIFO_WRITE | radio->packet.data[radio->lld_driver.rfm12b.txrx_counter];
                     if (++radio->lld_driver.rfm12b.txrx_counter >= RADIO_PACKET_DATA_SIZE) {
                         radio->lld_driver.rfm12b.state = RFM12B_TX_CRC;
@@ -601,6 +606,8 @@ static void rfm12b_lld_spi_handler_tx(SPIDriver *spip) {
                 1, &radio->lld_driver.rfm12b.txrx_data,
                 &radio->lld_driver.rfm12b.txrx_data);
         }
+    } else {
+        radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
     }
     ithacaUnlockISR(&radio->lld_driver.rfm12b.lock);
 }
@@ -620,6 +627,7 @@ static void rfm12b_lld_spi_handler_rx(SPIDriver *spip) {
     // end spi transmission
     spiUnselectI(radio->config->lld_config.rfm12b->spi_drv);
     if (ithacaLockISR(&radio->lld_driver.rfm12b.lock) == false) {
+        radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
         return;
     }
     //
@@ -672,6 +680,7 @@ static void rfm12b_lld_spi_handler_rx(SPIDriver *spip) {
                 radio->lld_driver.rfm12b.txrx_data = 0;
                 break;
         }
+        radio->lld_driver.rfm12b.nirq_cfg.cb = rfm12b_lld_nirq_handler;
     } else {
         // rfm12b status in txrx_data
         if (radio->lld_driver.rfm12b.txrx_data & RFM12B_STATUS_RX_READY) {
@@ -715,6 +724,7 @@ static void rfm12b_lld_nirq_handler(EXTDriver *extp, expchannel_t channel) {
         } else {
             radio->lld_driver.rfm12b.spi_cfg.end_cb = rfm12b_lld_spi_handler_rx;
         }
+        radio->lld_driver.rfm12b.nirq_cfg.cb = NULL;
         radio->lld_driver.rfm12b.spi_xfer_last = false;
         radio->lld_driver.rfm12b.txrx_data = RFM12B_STATUS;
         spiSelectI(radio->config->lld_config.rfm12b->spi_drv);

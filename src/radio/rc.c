@@ -34,10 +34,13 @@ void radio_rc_idle_cb(RadioDriver *radio) {
         radioRecvStartI(radio);
     } else if (rcp->state == RC_MASTER) {
         // TODO chThdSleepMilliseconds(2);
+        rcp->rc_packet->target_id = rcp->config->peer_id;
+        rcp->rc_packet->sender_id = rcp->config->self_id;
+        radioSendStartI(radio, (radio_packet_t *)rcp->rc_packet);
         consoleDebug("RC(radio_rc_idle_cb) RC_MASTER\r\n");
-        radioSendStartI(radio, (radio_packet_t *)&rcp->rc_packet);
     }
     consoleDebug("RC(radio_rc_idle_cb) end\r\n");
+    consoleDebug("sizeof %d vs %d\r\n", sizeof(rc_packet_t), sizeof(radio_packet_t));
     ithacaUnlock(&rcp->lock);
 }
 
@@ -52,22 +55,23 @@ void radio_rc_recv_done_cb(RadioDriver *radio) {
         consoleDebug("RC(radio_rc_recv_done_cb) lock fail\r\n");
         return;
     }
-    memcpy(&rcp->rc_packet, &radio->packet, sizeof(radio_packet_t));
+    memcpy(rcp->rc_packet, &radio->packet, sizeof(radio_packet_t));
     if (rcp->state == RC_SLAVE) {
-        if (rcp->rc_packet.target_id == rcp->config->self_id) {
+        if (rcp->rc_packet->target_id == rcp->config->self_id) {
             if (rcp->config->slave_cb != NULL) {
                 rcp->config->slave_cb(radio);
             }
-            rcp->rc_packet.target_id = rcp->config->peer_id;
-            rcp->rc_packet.sender_id = rcp->config->self_id;
-            consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE got packet\r\n");
+            rcp->rc_packet->target_id = rcp->config->peer_id;
+            rcp->rc_packet->sender_id = rcp->config->self_id;
             // TODO chThdSleepMilliseconds(2);
-            radioSendStartI(radio, (radio_packet_t *)&rcp->rc_packet);
+            radioSendStartI(radio, (radio_packet_t *)rcp->rc_packet);
+            consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE got packet\r\n");
         } else {
-            consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE ignoring packet\r\n");
+            radioIdleI(radio);
+            consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE ignoring packet: %4X -> %4X -- %2X %2X %2X %2X %2X %2X %2X %2X\r\n", rcp->rc_packet->sender_id, rcp->rc_packet->target_id, radio->packet.data[0], radio->packet.data[1], radio->packet.data[2], radio->packet.data[3], radio->packet.data[4], radio->packet.data[5], radio->packet.data[6], radio->packet.data[7]);
         }
     } else if (rcp->state == RC_MASTER) {
-        if (rcp->rc_packet.target_id == rcp->config->self_id) {
+        if (rcp->rc_packet->target_id == rcp->config->self_id) {
             if (rcp->config->master_cb != NULL) {
                 rcp->config->master_cb(radio);
             }
@@ -75,6 +79,9 @@ void radio_rc_recv_done_cb(RadioDriver *radio) {
         } else {
             consoleDebug("RC(radio_rc_recv_done_cb) RC_MASTER ignoring packet\r\n");
         }
+        radioIdleI(radio);
+    } else {
+        radioIdleI(radio);
     }
     consoleDebug("RC(radio_rc_recv_done_cb) end\r\n");
     ithacaUnlock(&rcp->lock);
@@ -92,9 +99,8 @@ void radio_rc_recv_error_cb(RadioDriver *radio) {
     }
     if (rcp->config->error_cb != NULL) {
         rcp->config->error_cb(radio);
-    } else {
-        radioIdleI(radio);
     }
+    radioIdleI(radio);
     // start next receive
     consoleDebug("RC(radio_rc_recv_error_cb) end\r\n");
     ithacaUnlock(&rcp->lock);
@@ -112,6 +118,8 @@ void radio_rc_send_done_cb(RadioDriver *radio) {
     }
     if (rcp->state == RC_MASTER) {
         radioRecvStartI(radio);
+    } else {
+        radioIdleI(radio);
     }
     consoleDebug("RC(radio_rc_send_done_cb) end\r\n");
     ithacaUnlock(&rcp->lock);
@@ -129,9 +137,8 @@ void radio_rc_send_error_cb(RadioDriver *radio) {
     }
     if (rcp->config->error_cb != NULL) {
         rcp->config->error_cb(radio);
-    } else {
-        radioIdleI(radio);
     }
+    radioIdleI(radio);
     consoleDebug("RC(radio_rc_send_error_cb) end\r\n");
     ithacaUnlock(&rcp->lock);
 }
@@ -185,10 +192,13 @@ bool rcStartMaster(RCDriver *rcp, rc_packet_t *packet) {
         return false;
     }
     //
-    memcpy(&rcp->rc_packet, packet, sizeof(radio_packet_t));
-    rcp->rc_packet.target_id = rcp->config->peer_id;
-    rcp->rc_packet.sender_id = rcp->config->self_id;
+    rcp->rc_packet = packet;
+    rcp->rc_packet->target_id = rcp->config->peer_id;
+    rcp->rc_packet->sender_id = rcp->config->self_id;
     radioSetTimeout(rcp->config->radio_drv, 20);
+    radioIdleI(rcp->config->radio_drv);
+    RadioDriver *radio = rcp->config->radio_drv;
+        consoleDebug("RC(radio_rc_idle_cb) RC_MASTER IDLE: %4X -> %4X -- %2X %2X %2X %2X %2X %2X %2X %2X\r\n", rcp->rc_packet->sender_id, rcp->rc_packet->target_id, radio->packet.data[0], radio->packet.data[1], radio->packet.data[2], radio->packet.data[3], radio->packet.data[4], radio->packet.data[5], radio->packet.data[6], radio->packet.data[7]);
     rcp->state = RC_MASTER;
     ithacaUnlock(&rcp->lock);
     //
@@ -201,7 +211,7 @@ bool rcStartMaster(RCDriver *rcp, rc_packet_t *packet) {
  * @brief   ...
  * @details ...
  */
-bool rcStartSlave(RCDriver *rcp) {
+bool rcStartSlave(RCDriver *rcp, rc_packet_t *packet) {
     //
     consoleDebug("rcStartSlave start\r\n");
     //
@@ -216,6 +226,7 @@ bool rcStartSlave(RCDriver *rcp) {
         return false;
     }
     //
+    rcp->rc_packet = packet;
     radioSetTimeout(rcp->config->radio_drv, 50);
     rcp->state = RC_SLAVE;
     ithacaUnlock(&rcp->lock);
