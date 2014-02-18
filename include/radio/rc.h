@@ -11,8 +11,17 @@
  * @brief   ...
  * @details ...
  */
-#define RC_CHANNEL_NUMBER 8
+#define RC_CHANNEL_NUMBER 4
 #define RC_PACKET_DATA_SIZE RADIO_PACKET_DATA_SIZE - RC_CHANNEL_NUMBER - 4
+#define RC_SLAVE_PACKET_DATA_SIZE RADIO_PACKET_DATA_SIZE - 4
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+#if RC_PACKET_DATA_SIZE < 0
+#error RC_PACKET_DATA_SIZE cant be less than zero
+#endif
 
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
@@ -34,8 +43,28 @@ typedef struct {
     uint16_t target_id;
     uint16_t sender_id;
     uint8_t channel[RC_CHANNEL_NUMBER];
+#if RC_PACKET_DATA_SIZE > 0
     uint8_t data[RC_PACKET_DATA_SIZE];
+#endif
 } rc_packet_t;
+
+/*
+ * @brief   Alias for rc_packet_t
+ * @details ...
+ */
+typedef rc_packet_t rc_master_packet_t;
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+typedef struct {
+    uint16_t target_id;
+    uint16_t sender_id;
+#if RC_SLAVE_PACKET_DATA_SIZE > 0
+    uint8_t data[RC_SLAVE_PACKET_DATA_SIZE];
+#endif
+} rc_slave_packet_t;
 
 /*
  * @brief   Just forward declaration.
@@ -66,14 +95,20 @@ typedef enum {
  * @brief   ...
  * @details ...
  */
+typedef void(* rc_callback_t)(RCDriver *rcp);
+
+/*
+ * @brief   ...
+ * @details ...
+ */
 typedef struct {
     //
     uint16_t self_id;
     uint16_t peer_id;
     // callbacks
-    radio_callback_t slave_cb;
-    radio_callback_t master_cb;
-    radio_callback_t error_cb;
+    rc_callback_t slave_cb;
+    rc_callback_t master_cb;
+    rc_callback_t error_cb;
     // radio driver
     RadioConfig *radio_cfg;
     RadioDriver *radio_drv;

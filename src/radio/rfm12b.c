@@ -2,6 +2,13 @@
 
 #if ITHACA_USE_RADIO_RFM12B || defined(__DOXYGEN__)
 
+/* TODO
+ * - documentation
+ * - set bandwidth registers based on data rate
+ * - add possibility to change frequency/data rate/sync word
+ * - 
+ */
+
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
@@ -754,11 +761,11 @@ bool rfm12b_lld_init(RadioDriver *radio) {
         consoleDevel("rfm12b_lld_init() EXT driver not started\r\n");
         return false;
     }
-    if (radio->config->lld_config.rfm12b->preamble_length < 3) {
-        radio->config->lld_config.rfm12b->preamble_length = 3;
+    if (radio->config->lld_config.rfm12b->preamble_length < 5) {
+        radio->config->lld_config.rfm12b->preamble_length = 5;
     }
-    if (radio->config->lld_config.rfm12b->postamble_length < 1) {
-        radio->config->lld_config.rfm12b->postamble_length = 1;
+    if (radio->config->lld_config.rfm12b->postamble_length < 2) {
+        radio->config->lld_config.rfm12b->postamble_length = 2;
     }
     //
     if (!rfm12b_lld_init_io(radio) ||
