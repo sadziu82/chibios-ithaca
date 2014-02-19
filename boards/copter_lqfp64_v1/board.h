@@ -67,9 +67,11 @@
  * PA5  - lcd rs/dc
  * PA6  - lcd rst
  * PA7  - lcd pwm
+ * PA8  - rfm12b rst
+ * PA9  - rfm12b irq
  */
 #define VAL_GPIOACRL            0x3333BBBB      /*  PA7...PA0 */
-#define VAL_GPIOACRH            0x88888888      /* PA15...PA8 */
+#define VAL_GPIOACRH            0x88888883      /* PA15...PA8 */
 #define VAL_GPIOAODR            0xFFFFFFFF
 
 /*
@@ -82,9 +84,13 @@
  * PB7  - gps: usart1 rx (remap)
  * PB10 - imu: i2c2 scl
  * PB11 - imu: i2c2 sda
+ * PB12 - rfm12b cs
+ * PB13 - rfm12b clk (spi2)
+ * PB14 - rfm12b miso (spi2)
+ * PB15 - rfm12b mosi (spi2)
  */
 #define VAL_GPIOBCRL            0xBBBBB788      /*  PB7...PB0 */
-#define VAL_GPIOBCRH            0x8888EE88      /* PB15...PB8 */
+#define VAL_GPIOBCRH            0xBBB3EE88      /* PB15...PB8 */
 #define VAL_GPIOBODR            0xFFFFFFFF
 
 // 
