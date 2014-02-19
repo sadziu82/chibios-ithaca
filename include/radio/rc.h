@@ -118,10 +118,23 @@ typedef struct {
  * @brief   ...
  * @details ...
  */
+typedef struct {
+    //
+    uint32_t recv_ok;
+    uint32_t recv_error;
+    uint32_t send_ok;
+    uint32_t send_error;
+} rc_stats_t;
+/*
+ * @brief   ...
+ * @details ...
+ */
 typedef struct RCDriver {
     // ...
     rc_state_t state;
     RCConfig *config;
+    //
+    rc_stats_t stats;
     // ...
     rc_packet_t *rc_packet;
     ithaca_lock_t lock;

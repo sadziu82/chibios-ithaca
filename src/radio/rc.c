@@ -36,6 +36,9 @@ void radio_rc_idle_cb(RadioDriver *radio) {
         // TODO chThdSleepMilliseconds(2);
         rcp->rc_packet->target_id = rcp->config->peer_id;
         rcp->rc_packet->sender_id = rcp->config->self_id;
+        // TODO
+        chThdSleepMilliseconds(3);
+        //
         radioSendStartI(radio, (radio_packet_t *)rcp->rc_packet);
         consoleDebug("RC(radio_rc_idle_cb) RC_MASTER\r\n");
     }
@@ -61,12 +64,16 @@ void radio_rc_recv_done_cb(RadioDriver *radio) {
             if (rcp->config->slave_cb != NULL) {
                 rcp->config->slave_cb(rcp);
             }
+            rcp->stats.recv_ok++;
             rcp->rc_packet->target_id = rcp->config->peer_id;
             rcp->rc_packet->sender_id = rcp->config->self_id;
-            // TODO chThdSleepMilliseconds(2);
+            // TODO
+            chThdSleepMilliseconds(3);
+            //
             radioSendStartI(radio, (radio_packet_t *)rcp->rc_packet);
             consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE got packet\r\n");
         } else {
+            rcp->stats.recv_error++;
             radioRecvStartI(radio);
             consoleDebug("RC(radio_rc_recv_done_cb) RC_SLAVE ignoring packet\r\n");
         }
@@ -75,8 +82,10 @@ void radio_rc_recv_done_cb(RadioDriver *radio) {
             if (rcp->config->master_cb != NULL) {
                 rcp->config->master_cb(rcp);
             }
+            rcp->stats.recv_ok++;
             consoleDebug("RC(radio_rc_recv_done_cb) RC_MASTER got packet\r\n");
         } else {
+            rcp->stats.recv_error++;
             consoleDebug("RC(radio_rc_recv_done_cb) RC_MASTER ignoring packet\r\n");
         }
         radioIdleI(radio);
@@ -100,6 +109,7 @@ void radio_rc_recv_error_cb(RadioDriver *radio) {
     if (rcp->config->error_cb != NULL) {
         rcp->config->error_cb(rcp);
     }
+    rcp->stats.recv_error++;
     radioIdleI(radio);
     // start next receive
     consoleDebug("RC(radio_rc_recv_error_cb) end\r\n");
@@ -121,6 +131,7 @@ void radio_rc_send_done_cb(RadioDriver *radio) {
     } else {
         radioIdleI(radio);
     }
+    rcp->stats.send_ok++;
     consoleDebug("RC(radio_rc_send_done_cb) end\r\n");
     ithacaUnlock(&rcp->lock);
 }
@@ -138,6 +149,7 @@ void radio_rc_send_error_cb(RadioDriver *radio) {
     if (rcp->config->error_cb != NULL) {
         rcp->config->error_cb(rcp);
     }
+    rcp->stats.send_error++;
     radioIdleI(radio);
     consoleDebug("RC(radio_rc_send_error_cb) end\r\n");
     ithacaUnlock(&rcp->lock);
