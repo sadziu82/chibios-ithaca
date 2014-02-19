@@ -1,31 +1,27 @@
-##
-## 
-## 
-
-## misc
-INCDIR += $(ITHACA)/include/
-CSRC += $(ITHACA)/src/misc/device_id.c \
-        $(ITHACA)/src/misc/button.c \
-        $(ITHACA)/src/misc/digital_output.c \
-        $(ITHACA)/src/misc/hcsr501.c \
-        $(ITHACA)/src/misc/keypad44.c \
-        $(ITHACA)/src/misc/mono_timer.c \
-        $(ITHACA)/src/misc/pca9633.c \
-        $(ITHACA)/src/misc/lm75ad.c \
-        $(ITHACA)/src/misc/dht11.c \
-        $(ITHACA)/src/misc/console.c \
-        $(ITHACA)/src/misc/rung.c \
-        $(ITHACA)/src/misc/ladder.c \
-        $(ITHACA)/src/misc/chsprintf.c \
-        $(ITHACA)/src/misc/font.c \
-        $(ITHACA)/src/misc/font_std.c \
-        $(ITHACA)/src/misc/lcd_st7735.c \
-        $(ITHACA)/src/misc/imu.c \
-        $(ITHACA)/src/radio.c \
-        $(ITHACA)/src/radio/ppm.c \
-        $(ITHACA)/src/radio/rfm12b.c \
-        $(ITHACA)/src/radio/rfm22b.c \
-        $(ITHACA)/src/radio/mesh.c \
-        $(ITHACA)/src/radio/rc.c \
-        $(ITHACA)/src/ithaca.c
+## ithaca library
+ITHACAINC += $(ITHACALIB)/include/
+ITHACASRC += $(ITHACALIB)/src/misc/device_id.c \
+             $(ITHACALIB)/src/misc/button.c \
+             $(ITHACALIB)/src/misc/digital_output.c \
+             $(ITHACALIB)/src/misc/hcsr501.c \
+             $(ITHACALIB)/src/misc/keypad44.c \
+             $(ITHACALIB)/src/misc/mono_timer.c \
+             $(ITHACALIB)/src/misc/pca9633.c \
+             $(ITHACALIB)/src/misc/lm75ad.c \
+             $(ITHACALIB)/src/misc/dht11.c \
+             $(ITHACALIB)/src/misc/console.c \
+             $(ITHACALIB)/src/misc/rung.c \
+             $(ITHACALIB)/src/misc/ladder.c \
+             $(ITHACALIB)/src/misc/chsprintf.c \
+             $(ITHACALIB)/src/misc/font.c \
+             $(ITHACALIB)/src/misc/font_std.c \
+             $(ITHACALIB)/src/misc/lcd_st7735.c \
+             $(ITHACALIB)/src/misc/imu.c \
+             $(ITHACALIB)/src/radio.c \
+             $(ITHACALIB)/src/radio/ppm.c \
+             $(ITHACALIB)/src/radio/rfm12b.c \
+             $(ITHACALIB)/src/radio/rfm22b.c \
+             $(ITHACALIB)/src/radio/mesh.c \
+             $(ITHACALIB)/src/radio/rc.c \
+             $(ITHACALIB)/src/ithaca.c
 
