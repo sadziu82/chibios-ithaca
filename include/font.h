@@ -1,46 +1,7 @@
-#ifndef _ITHACA_H_
-#define _ITHACA_H_
+#ifndef _FONT_H_
+#define _FONT_H_
 
-#include "ch.h"
-#include "hal.h"
-
-#include "ithacaconf.h"
-
-#if ITHACA_USE_LIB || defined(__DOXYGEN__)
-
-/*
- * @brief   ...
- * @details ...
- */
-typedef struct {
-    // ...
-    char *name;
-    bool flag;
-} ithaca_lock_t;
-
-#include <misc/device_id.h>
-
-#include <misc/console.h>
-
-#include <misc/block.h>
-#include <misc/rung.h>
-#include <misc/ladder.h>
-
-#include <misc/button.h>
-#include <misc/digital_output.h>
-#include <misc/keypad44.h>
-#include <misc/mono_timer.h>
-
-#include <misc/pca9633.h>
-#include <sensors.h>
-#include <misc/imu.h>
-
-#include <font.h>
-
-#include <lcd.h>
-
-
-#include <radio.h>
+#if ITHACA_USE_FONT || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -58,6 +19,21 @@ typedef struct {
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
 
+/*
+ * @brief   ...
+ * @details ...
+ */
+typedef struct {
+    uint8_t width;
+    uint8_t height;
+    uint8_t min;
+    uint8_t max;
+    uint8_t bitmap[];
+} font_t;
+
+//
+#include <font/font_std.h>
+
 /*===========================================================================*/
 /* Driver macros.                                                            */
 /*===========================================================================*/
@@ -66,22 +42,19 @@ typedef struct {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-//
-bool ithacaLock(ithaca_lock_t *lock);
-bool ithacaLockTimeout(ithaca_lock_t *lock, systime_t tm);
-void ithacaUnlock(ithaca_lock_t *lock);
-bool ithacaLockISR(ithaca_lock_t *lock);
-void ithacaUnlockISR(ithaca_lock_t *lock);
-//
-extern EXTConfig ext1_cfg;
+uint8_t fontGetWidth(const font_t *);
+uint8_t fontGetHeight(const font_t *);
+uint8_t fontGetCharWidth(const font_t *, const char c);
+uint8_t *fontGetCharBitmap(const font_t *, const char c);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ITHACA_USE_LIB */
+#endif /* ITHACA_USE_FONT */
 
-#endif /* _ITHACA_H_ */
+#endif /* _FONT_H_ */
 
