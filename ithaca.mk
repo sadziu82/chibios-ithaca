@@ -15,7 +15,6 @@ ITHACASRC += $(ITHACALIB)/src/misc/device_id.c \
              $(ITHACALIB)/src/misc/rung.c \
              $(ITHACALIB)/src/misc/ladder.c \
              $(ITHACALIB)/src/misc/chsprintf.c \
-             $(ITHACALIB)/src/lcd/lcd_st7735.c \
              $(ITHACALIB)/src/misc/imu.c \
              $(ITHACALIB)/src/radio.c \
              $(ITHACALIB)/src/radio/ppm.c \
@@ -24,9 +23,6 @@ ITHACASRC += $(ITHACALIB)/src/misc/device_id.c \
              $(ITHACALIB)/src/radio/mesh.c \
              $(ITHACALIB)/src/radio/rc.c \
              $(ITHACALIB)/src/ithaca.c
-             #$(ITHACALIB)/src/font.c \
-             #$(ITHACALIB)/src/font/font_std.c \
-             #$(ITHACALIB)/src/lcd.c \
 
 ITHACACPPSRC += $(ITHACALIB)/src/lcd.cpp \
                 $(ITHACALIB)/src/lcd/st7735.cpp \

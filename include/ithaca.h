@@ -45,11 +45,6 @@ typedef struct {
 #include <sensors.h>
 #include <misc/imu.h>
 
-//#include <font.h>
-
-#include <lcd.h>
-
-
 #include <radio.h>
 
 /*===========================================================================*/
