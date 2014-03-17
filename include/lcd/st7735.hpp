@@ -1,8 +1,8 @@
-#ifndef _LCD2_ST7735_HPP_
-#define _LCD2_ST7735_HPP_
+#ifndef _LCD_ST7735_HPP_
+#define _LCD_ST7735_HPP_
 
 
-#if ITHACA_USE_LCD2_ST7735 || defined(__DOXYGEN__)
+#if ITHACA_USE_LCD_ST7735 || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -146,7 +146,7 @@ class LcdST7735: public Lcd {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#endif /* ITHACA_USE_LCD2_ST7735 */
+#endif /* ITHACA_USE_LCD_ST7735 */
 
-#endif /* _LCD2_ST7735_HPP_ */
+#endif /* _LCD_ST7735_HPP_ */
 

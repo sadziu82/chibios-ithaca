@@ -1,6 +1,6 @@
 #include <ithaca.hpp>
 
-#if ITHACA_USE_LCD2 || defined(__DOXYGEN__)
+#if ITHACA_USE_LCD || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
@@ -157,5 +157,5 @@ void Lcd::pageChanged(void) {
     this->page_need_flush = true;
 }
 
-#endif /* ITHACA_USE_LCD2 */
+#endif /* ITHACA_USE_LCD */
 

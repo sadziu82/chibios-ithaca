@@ -1,6 +1,6 @@
 #include <ithaca.hpp>
 
-#if ITHACA_USE_LCD2_ST7735 || defined(__DOXYGEN__)
+#if ITHACA_USE_LCD_ST7735 || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
@@ -340,6 +340,6 @@ bool LcdST7735::flushPage(void) {
     return true;
 };
 
-#endif /* ITHACA_USE_LCD2_ST7735 */
+#endif /* ITHACA_USE_LCD_ST7735 */
 
 

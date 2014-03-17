@@ -1,8 +1,8 @@
-#ifndef _LCD2_HPP_
-#define _LCD2_HPP_
+#ifndef _LCD_HPP_
+#define _LCD_HPP_
 
 
-#if ITHACA_USE_LCD2 || defined(__DOXYGEN__)
+#if ITHACA_USE_LCD || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -216,7 +216,7 @@ inline void Lcd::putPixel(uint16_t x, uint16_t y, Color c, Alpha a) {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#endif /* ITHACA_USE_LCD2 */
+#endif /* ITHACA_USE_LCD */
 
-#endif /* _LCD2_HPP_ */
+#endif /* _LCD_HPP_ */
 
