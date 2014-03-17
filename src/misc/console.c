@@ -2,9 +2,6 @@
 
 #if ITHACA_USE_CONSOLE || defined(__DOXYGEN__)
 
-#include <stdarg.h>
-#include "misc/chsprintf.h"
-
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
 /*===========================================================================*/

@@ -29,10 +29,7 @@
  * @{
  */
 
-#include <stdarg.h>
-
-#include "ch.h"
-#include "misc/chsprintf.h"
+#include <ithaca.h>
 
 #define MAX_FILLER 11
 #define FLOAT_PRECISION 1000
