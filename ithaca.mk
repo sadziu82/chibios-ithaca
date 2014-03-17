@@ -1,6 +1,7 @@
 ## ithaca library
 ITHACAINC += $(ITHACALIB)/include/ \
              $(ITHACALIB)/include/misc/
+
 ITHACASRC += $(ITHACALIB)/src/misc/device_id.c \
              $(ITHACALIB)/src/misc/button.c \
              $(ITHACALIB)/src/misc/digital_output.c \
@@ -14,9 +15,6 @@ ITHACASRC += $(ITHACALIB)/src/misc/device_id.c \
              $(ITHACALIB)/src/misc/rung.c \
              $(ITHACALIB)/src/misc/ladder.c \
              $(ITHACALIB)/src/misc/chsprintf.c \
-             $(ITHACALIB)/src/font.c \
-             $(ITHACALIB)/src/font/font_std.c \
-             $(ITHACALIB)/src/lcd.c \
              $(ITHACALIB)/src/lcd/lcd_st7735.c \
              $(ITHACALIB)/src/misc/imu.c \
              $(ITHACALIB)/src/radio.c \
@@ -26,4 +24,16 @@ ITHACASRC += $(ITHACALIB)/src/misc/device_id.c \
              $(ITHACALIB)/src/radio/mesh.c \
              $(ITHACALIB)/src/radio/rc.c \
              $(ITHACALIB)/src/ithaca.c
+             #$(ITHACALIB)/src/font.c \
+             #$(ITHACALIB)/src/font/font_std.c \
+             #$(ITHACALIB)/src/lcd.c \
+
+ITHACACPPSRC += $(ITHACALIB)/src/lcd.cpp \
+                $(ITHACALIB)/src/lcd/st7735.cpp \
+                $(ITHACALIB)/src/font.cpp \
+                $(ITHACALIB)/src/font/font_std.cpp \
+                $(ITHACALIB)/src/widget.cpp \
+                $(ITHACALIB)/src/widget/main_window.cpp \
+                $(ITHACALIB)/src/widget/frame.cpp \
+                $(ITHACALIB)/src/widget/label.cpp
 

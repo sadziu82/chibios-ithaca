@@ -1,56 +1,7 @@
-#ifndef _ITHACA_H_
-#define _ITHACA_H_
+#ifndef _WIDGET_HPP_
+#define _WIDGET_HPP_
 
-#include "ch.h"
-#include "hal.h"
-
-#include "ithacaconf.h"
-
-#if ITHACA_USE_LIB || defined(__DOXYGEN__)
-
-/*
- * @brief   ...
- * @details ...
- */
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
-/*
- * @brief   ...
- * @details ...
- */
-typedef struct {
-    // ...
-    char *name;
-    bool flag;
-} ithaca_lock_t;
-
-#include <stdarg.h>
-#include <misc/chsprintf.h>
-
-#include <misc/device_id.h>
-
-#include <misc/console.h>
-
-#include <misc/block.h>
-#include <misc/rung.h>
-#include <misc/ladder.h>
-
-#include <misc/button.h>
-#include <misc/digital_output.h>
-#include <misc/keypad44.h>
-#include <misc/mono_timer.h>
-
-#include <misc/pca9633.h>
-#include <sensors.h>
-#include <misc/imu.h>
-
-//#include <font.h>
-
-#include <lcd.h>
-
-
-#include <radio.h>
+#if ITHACA_USE_WIDGET || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -60,6 +11,9 @@ typedef struct {
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
 
+//
+class Lcd;
+
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
@@ -67,6 +21,40 @@ typedef struct {
 /*===========================================================================*/
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+class Widget {
+    protected:
+        Lcd *lcd;
+        Widget *parent;
+        Widget *child;
+        Widget *prev;
+        Widget *next;
+        //
+        Lcd::Color bg_color;
+        Lcd::Alpha bg_alpha;
+        //
+        uint16_t xs, ys, xe, ye;
+        bool need_redraw;
+        virtual void self_redraw(bool force_redraw);
+    public:
+        bool page_flush_needed(void);
+        Widget(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+        void redraw(bool force_redraw);
+        void assignLcd(Lcd *lcd);
+        void setParent(Widget *parent);
+        //
+        void setBgColor(Lcd::Color c, Lcd::Alpha a);
+        //
+        Widget *getNext(void);
+        void addChild(Widget *c);
+        void addNeighbour(Widget *w);
+        uint8_t drawChar(uint16_t col, uint16_t row, Font *font, char c,
+                         Lcd::Color fc, Lcd::Alpha fa, Lcd::Color bc, Lcd::Alpha ba);
+};
 
 /*===========================================================================*/
 /* Driver macros.                                                            */
@@ -76,22 +64,7 @@ typedef struct {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-//
-bool ithacaLock(ithaca_lock_t *lock);
-bool ithacaLockTimeout(ithaca_lock_t *lock, systime_t tm);
-void ithacaUnlock(ithaca_lock_t *lock);
-bool ithacaLockISR(ithaca_lock_t *lock);
-void ithacaUnlockISR(ithaca_lock_t *lock);
-//
-extern EXTConfig ext1_cfg;
-#ifdef __cplusplus
-}
-#endif
+#endif /* ITHACA_USE_WIDGET */
 
-#endif /* ITHACA_USE_LIB */
-
-#endif /* _ITHACA_H_ */
+#endif /* _WIDGET_HPP_ */
 

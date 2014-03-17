@@ -1,56 +1,7 @@
-#ifndef _ITHACA_H_
-#define _ITHACA_H_
+#ifndef _FONT_STD_HPP_
+#define _FONT_STD_HPP_
 
-#include "ch.h"
-#include "hal.h"
-
-#include "ithacaconf.h"
-
-#if ITHACA_USE_LIB || defined(__DOXYGEN__)
-
-/*
- * @brief   ...
- * @details ...
- */
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
-/*
- * @brief   ...
- * @details ...
- */
-typedef struct {
-    // ...
-    char *name;
-    bool flag;
-} ithaca_lock_t;
-
-#include <stdarg.h>
-#include <misc/chsprintf.h>
-
-#include <misc/device_id.h>
-
-#include <misc/console.h>
-
-#include <misc/block.h>
-#include <misc/rung.h>
-#include <misc/ladder.h>
-
-#include <misc/button.h>
-#include <misc/digital_output.h>
-#include <misc/keypad44.h>
-#include <misc/mono_timer.h>
-
-#include <misc/pca9633.h>
-#include <sensors.h>
-#include <misc/imu.h>
-
-//#include <font.h>
-
-#include <lcd.h>
-
-
-#include <radio.h>
+#if ITHACA_USE_FONT_STD || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -76,22 +27,19 @@ typedef struct {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-//
-bool ithacaLock(ithaca_lock_t *lock);
-bool ithacaLockTimeout(ithaca_lock_t *lock, systime_t tm);
-void ithacaUnlock(ithaca_lock_t *lock);
-bool ithacaLockISR(ithaca_lock_t *lock);
-void ithacaUnlockISR(ithaca_lock_t *lock);
-//
-extern EXTConfig ext1_cfg;
-#ifdef __cplusplus
-}
-#endif
+/*
+ * @brief   ...
+ * @details ...
+ */
+class FontStd: public Font {
+    protected:
+        static const uint8_t bitmap[];
+    public:
+        FontStd(void);
+        virtual const uint8_t *getBitmap(void);
+};
 
-#endif /* ITHACA_USE_LIB */
+#endif /* ITHACA_USE_FONT_STD */
 
-#endif /* _ITHACA_H_ */
+#endif /* _FONT_STD_HPP_ */
 
