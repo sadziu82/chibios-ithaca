@@ -67,6 +67,28 @@ void WidgetLabel::self_redraw(bool force_redraw) {
     }
 }
 
+/*
+ * @brief   ...
+ * @details ...
+ */
+void WidgetLabel::update_data(void) {
+    //
+    if (data == NULL) {
+        return;
+    }
+    //
+    switch (this->data_type) {
+        case Widget::DataSourceType::UINT8:
+            this->setText(this->fmt, *(uint8_t *)this->data);
+            this->need_redraw = true;
+            break;
+        case Widget::DataSourceType::UINT32:
+            this->setText(this->fmt, *(uint32_t *)this->data);
+            this->need_redraw = true;
+            break;
+    }
+}
+
 /*===========================================================================*/
 /* Driver exported functions.                                                */
 /*===========================================================================*/
@@ -85,6 +107,8 @@ WidgetLabel::WidgetLabel(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
     this->text_align = Lcd::TextAlign::Left;
     this->text_color = Lcd::Color::White;
     this->text_alpha = Lcd::Alpha::Solid;
+    this->data = NULL;
+    this->data_type = Widget::DataSourceType::TEXT;
 }
 
 /*
@@ -102,16 +126,48 @@ void WidgetLabel::setFont(Font *font, Lcd::TextAlign ha, Lcd::Color tc, Lcd::Alp
  * @brief   ...
  * @details ...
  */
-void WidgetLabel::setText(char *str) {
-    this->text = str;
+void WidgetLabel::setText(char *fmt, ...) {
+    //
+    va_list args;
+    //
+    if (this->text != NULL) {
+        chHeapFree(this->text);
+        this->text = NULL;
+    }
+    // calculate string legth
+    va_start(args, fmt);
+    uint8_t len = chvsprintf(NULL, fmt, args);
+    va_end(args);
+    //
+    this->text = (char *)chHeapAlloc(NULL, len + 1);
+    //
+    va_start(args, fmt);
+    chvsprintf(this->text, fmt, args);
+    va_end(args);
+    this->text[len] = '\0';
+    //consoleDebug("XXX %s XXX\r\n", this->text);
 }
 
 /*
  * @brief   ...
  * @details ...
  */
-void WidgetLabel::setData(uint8_t *data) {
-    this->text = "12";
+void WidgetLabel::setDataSource(char *fmt, uint8_t *data) {
+    //
+    this->fmt = fmt;
+    this->data = data;
+    this->data_type = Widget::DataSourceType::UINT8;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void WidgetLabel::setDataSource(char *fmt, uint32_t *data) {
+    //
+    this->fmt = fmt;
+    this->data = data;
+    this->data_type = Widget::DataSourceType::UINT32;
 }
 
 //

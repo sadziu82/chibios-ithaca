@@ -107,9 +107,8 @@ static char *ftoa(char *p, double num) {
  * @param[in] fmt       formatting string
  */
 uint8_t chvsprintf(char *str, const char *fmt, va_list ap) {
-    char *start = str;
     char *p, *s, c, filler;
-    int i, precision, width;
+    int i, precision, width, buffer_length;
     bool_t is_long, left_align;
     long l;
 #if CHPRINTF_USE_FLOAT
@@ -118,13 +117,16 @@ uint8_t chvsprintf(char *str, const char *fmt, va_list ap) {
 #else
     char tmpbuf[MAX_FILLER + 1];
 #endif
+    buffer_length = 0;
     while (TRUE) {
         c = *fmt++;
         if (c == 0) {
             break;
         }
         if (c != '%') {
-            *str++ = (uint8_t)c;
+            if (str)
+                *str++ = (uint8_t)c;
+            buffer_length++;
             continue;
         }
         p = tmpbuf;
@@ -239,23 +241,36 @@ unsigned_common:
             width = -width;
         if (width < 0) {
             if (*s == '-' && filler == '0') {
-                *str++ = (uint8_t)*s++;
+                if (str) {
+                    *str++ = (uint8_t)*s++;
+                }
+                buffer_length++;
                 i--;
             }
-            do
-                *str++ = (uint8_t)filler;
-            while (++width != 0);
+            do {
+                if (str) {
+                    *str++ = (uint8_t)filler;
+                }
+                buffer_length++;
+            } while (++width != 0);
         }
-        while (--i >= 0)
-            *str++ = (uint8_t)*s++;
+        while (--i >= 0) {
+            if (str) {
+                *str++ = (uint8_t)*s++;
+            }
+            buffer_length++;
+        }
 
         while (width) {
-            *str++ = (uint8_t)filler;
+            if (str) {
+                *str++ = (uint8_t)filler;
+            }
+            buffer_length++;
             width--;
         }
     }
     // 
-    return str - start;
+    return buffer_length;
 }
 
 uint8_t chsprintf(char *buffer, const char *fmt, ...) {

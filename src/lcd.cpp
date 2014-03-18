@@ -122,23 +122,20 @@ void Lcd::updateScreen(void) {
     TimeMeasurement screen_update_time;
     tmObjectInit(&screen_update_time);
     tmStartMeasurement(&screen_update_time);
-    //
+    // update data in all widgets
+    this->main_window->updateData();
+    // redraw widgets if necessary
     for (this->page_ys = 0; this->page_ys < this->height;
          this->page_ys += this->page_height) {
+        //
         this->page_ye = this->page_ys + this->page_height - 1;
+        //
         for (this->page_xs = 0; this->page_xs < this->width;
              this->page_xs += this->page_width) {
+            //
             this->page_xe = this->page_xs + this->page_width - 1;
-            //consoleDebug("%d %d %d %d\r\n", this->page_xs, this->page_xe,
-            //                                this->page_ys, this->page_ye);
-            //thisWidgetRedraw(this, root, true);
-            // TODO // prepare background
-            // TODO for (x = 0; x < this->page_size; x++) {
-            // TODO     this->page_buffer_draw[x] = static_cast<uint16_t>(this->bg_color);
-            // TODO }
             // by default we will not flush page
             this->page_need_flush = this->main_window->page_flush_needed();
-            consoleDebug("page flush: %d\r\n", this->page_need_flush);
             this->main_window->redraw(this->page_need_flush);
             // call virtual flushing method
             this->flushPage();
@@ -148,14 +145,6 @@ void Lcd::updateScreen(void) {
     tmStopMeasurement(&screen_update_time);
     consoleDebug("screenUpdate() took %d ms\r\n", RTT2MS(screen_update_time.last));
 };
-
-/*
- * @brief   ...
- * @details ...
- */
-void Lcd::pageChanged(void) {
-    this->page_need_flush = true;
-}
 
 #endif /* ITHACA_USE_LCD */
 

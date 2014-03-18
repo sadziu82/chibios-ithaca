@@ -74,7 +74,6 @@ class Lcd {
         inline uint16_t getWidth(void);
         inline uint16_t getHeight(void);
         inline void putPixel(uint16_t x, uint16_t y, Color c, Alpha a);
-        void pageChanged(void);
         //uint8_t drawChar(uint16_t x, uint16_t y, Font *font, char c,
         //                 Color fc, Alpha fa, Color bc, Alpha ba);
 };

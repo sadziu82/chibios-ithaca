@@ -31,12 +31,18 @@ class WidgetLabel: public WidgetFrame {
         Lcd::Color text_color;
         Lcd::Alpha text_alpha;
         virtual void self_redraw(bool force_redraw);
+        virtual void update_data(void);
+        //
+        char *fmt;
+        void *data;
+        Widget::DataSourceType data_type;
     public:
         WidgetLabel(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
                     Lcd::Color c, Lcd::Alpha a, Lcd::LineStyle s);
         void setFont(Font *font, Lcd::TextAlign ha, Lcd::Color tc, Lcd::Alpha ta);
-        void setText(char *str);
-        void setData(uint8_t *data);
+        void setText(char *fmt, ...);
+        void setDataSource(char *fmt, uint8_t *data);
+        void setDataSource(char *fmt, uint32_t *data);
         void update(void);
 };
 

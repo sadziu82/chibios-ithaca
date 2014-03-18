@@ -51,6 +51,22 @@ Widget::Widget(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
  * @brief   ...
  * @details ...
  */
+void Widget::updateData(void) {
+    //
+    this->update_data();
+    //
+    Widget *c;
+    c = this->child;
+    while (c != NULL) {
+        c->updateData();
+        c = c->getNext();
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
 void Widget::redraw(bool force_redraw) {
     //
     this->self_redraw(force_redraw);
@@ -61,13 +77,11 @@ void Widget::redraw(bool force_redraw) {
         c->redraw(this->need_redraw || force_redraw);
         c = c->getNext();
     }
-    //
-    if ((this->need_redraw == true) || (force_redraw == true)) {
-        this->lcd->pageChanged();
-    }
     // mark as already drawn
     if ((this->xe <= this->lcd->getPageXE()) &&
-        (this->ye <= this->lcd->getPageYE())) {
+        (this->ye <= this->lcd->getPageYE()) &&
+        (this->need_redraw == true)) {
+        //
         this->need_redraw = false;
     }
 }
@@ -95,6 +109,13 @@ void Widget::setParent(Widget *parent) {
  * @details ...
  */
 void Widget::self_redraw(bool force_redraw) {
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Widget::update_data(void) {
 }
 
 /*
