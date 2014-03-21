@@ -109,6 +109,32 @@ inline void ithacaUnlockISR(ithaca_lock_t *lock) {
     chSysUnlockFromIsr();
 }
 
+/*
+ * @brief   ...
+ * @details ...
+ */
+char *asprintf(char *buffer, char *fmt, ...) {
+    //
+    va_list args;
+    //
+    if (buffer != NULL) {
+        chHeapFree(buffer);
+        buffer = NULL;
+    }
+    // calculate string legth
+    va_start(args, fmt);
+    uint8_t len = chvsprintf(NULL, fmt, args);
+    va_end(args);
+    //
+    buffer = (char *)chHeapAlloc(NULL, len + 1);
+    //
+    va_start(args, fmt);
+    chvsprintf(buffer, fmt, args);
+    va_end(args);
+    buffer[len] = '\0';
+    return buffer;
+}
+
 #endif /* ITHACA_USE_LIB */
 
 

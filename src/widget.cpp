@@ -26,7 +26,7 @@
  * @brief   ...
  * @details ...
  */
-Widget::Widget(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
+Widget::Widget(void) {
     //
     this->lcd = NULL;
     this->parent = NULL;
@@ -34,19 +34,45 @@ Widget::Widget(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
     this->prev = NULL;
     this->next = NULL;
     //
+    this->setGeometry(0, 0, 0, 0);
+    this->setBgColor(Lcd::Color::Black, Lcd::Alpha::Transparent);
+    //
+    this->need_redraw = true;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+Widget::Widget(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
+               Lcd::Color c, Lcd::Alpha a) : Widget() {
+    //
+    this->setGeometry(x, y, w, h);
+    this->setBgColor(c, a);
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Widget::setGeometry(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
+    //
     this->xs = x;
     this->xe = x + w - 1;
     this->ys = y;
     this->ye = y + h - 1;
-    //
-    this->bg_color = Lcd::Color::Black;
-    this->bg_alpha = Lcd::Alpha::Transparent;
-    //
-    this->need_redraw = true;
-    //
-    consoleDebug("Widget(%d, %d, %d, %d)\r\n", x, y, w, h);
-}
+};
 
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Widget::setBgColor(Lcd::Color c, Lcd::Alpha a) {
+    //
+    this->bg_color = c;
+    this->bg_alpha = a;
+}
+;
 /*
  * @brief   ...
  * @details ...
@@ -102,6 +128,10 @@ void Widget::assignLcd(Lcd *lcd) {
 void Widget::setParent(Widget *parent) {
     this->parent = parent;
     this->lcd = parent->lcd;
+    this->xs += parent->xs;
+    this->xe += parent->xs;
+    this->ys += parent->ys;
+    this->ye += parent->ys;
 }
 
 /*
@@ -116,15 +146,6 @@ void Widget::self_redraw(bool force_redraw) {
  * @details ...
  */
 void Widget::update_data(void) {
-}
-
-/*
- * @brief   ...
- * @details ...
- */
-void Widget::setBgColor(Lcd::Color c, Lcd::Alpha a) {
-    this->bg_color = c;
-    this->bg_alpha = a;
 }
 
 /*
@@ -193,16 +214,63 @@ void Widget::addNeighbour(Widget *w) {
  * @brief   ...
  * @details ...
  */
+void Widget::drawText(uint16_t col, uint16_t row,
+                      Font *font, char *text, Lcd::TextAlign ha,
+                      Lcd::Color fc, Lcd::Alpha fa,
+                      Lcd::Color bc, Lcd::Alpha ba) {
+    //
+    if ((font == NULL) || (text == NULL)) {
+        return;
+    }
+    //
+    uint16_t x = 0, y = 0;
+    uint16_t tw = font->getTextWidth(text);
+    switch (ha) {
+        case Lcd::TextAlign::Left:
+            x = col;
+            break;
+        case Lcd::TextAlign::Center:
+            x = col - (tw / 2) + 1;
+            //y = row - (font->getHeight() / 2) + 1;
+            break;
+        case Lcd::TextAlign::Right:
+            x = col - tw;
+            //y = row - font->getHeight() + 1;
+            break;
+    }
+    y = row;
+    //
+    while (*text != '\0') {
+        //
+        x += this->drawChar(x, y, font, *text++, fc, fa, bc, ba);
+    }
+    return;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
 uint8_t Widget::drawChar(uint16_t col, uint16_t row, Font *font, char c,
                          Lcd::Color fc, Lcd::Alpha fa, Lcd::Color bc, Lcd::Alpha ba) {
     if (font == NULL) {
         return 0;
     }
-    uint16_t x, y;
-    uint8_t w, h, m, bit;
+    //
+    uint8_t w, h;
     const uint8_t *bitmap = font->getCharBitmap(c);
     w = font->getCharWidth(c);
     h = font->getHeight();
+    //
+    if ((col + w < this->lcd->getPageXS()) ||
+        (col > this->lcd->getPageXE()) ||
+        (row + h < this->lcd->getPageYS()) ||
+        (row > this->lcd->getPageYE())) {
+        return w;
+    }
+    //
+    uint16_t x, y;
+    uint8_t m, bit;
     m = '!';
     if (bitmap == NULL) {
         return 0;

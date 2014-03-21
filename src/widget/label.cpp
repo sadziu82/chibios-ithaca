@@ -97,16 +97,27 @@ void WidgetLabel::update_data(void) {
  * @brief   ...
  * @details ...
  */
+WidgetLabel::WidgetLabel(void) {
+    // TODO add initializers for local data
+    //this->setFont();
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
 WidgetLabel::WidgetLabel(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
-                         Lcd::Color c, Lcd::Alpha a, Lcd::LineStyle s) :
-                         WidgetFrame(x, y, w, h, c, a, s) {
+                         Lcd::Color bc, Lcd::Alpha ba,
+                         Lcd::Color fc, Lcd::Alpha fa, Lcd::LineStyle fs,
+                         Font *font, Lcd::TextAlign ha, Lcd::Color tc, Lcd::Alpha ta) :
+                         WidgetFrame(x, y, w, h, bc, ba, fc, fa, fs) {
     //
     consoleDebug("WidgetLabel(%d, %d, %d, %d\r\n", x, y, w, h);
     this->text = NULL;
-    this->font = NULL;
-    this->text_align = Lcd::TextAlign::Left;
-    this->text_color = Lcd::Color::White;
-    this->text_alpha = Lcd::Alpha::Solid;
+    this->font = font;
+    this->text_align = ha;
+    this->text_color = tc;
+    this->text_alpha = ta;
     this->data = NULL;
     this->data_type = Widget::DataSourceType::TEXT;
 }

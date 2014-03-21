@@ -26,11 +26,29 @@
  * @brief   ...
  * @details ...
  */
-WidgetFrame::WidgetFrame(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
-                         Lcd::Color c, Lcd::Alpha a, Lcd::LineStyle s) :
-                         Widget(x, y, w, h) {
+WidgetFrame::WidgetFrame(void) : Widget() {
     //
-    consoleDebug("WidgetFrame(%d, %d, %d, %d\r\n", x, y, w, h);
+    this->setFrame(Lcd::Color::White, Lcd::Alpha::Solid, Lcd::LineStyle::Dotted);
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+WidgetFrame::WidgetFrame(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
+                         Lcd::Color bc, Lcd::Alpha ba,
+                         Lcd::Color fc, Lcd::Alpha fa, Lcd::LineStyle fs) :
+                         Widget(x, y, w, h, bc, ba) {
+    //consoleDebug("WidgetFrame(%d, %d, %d, %d\r\n", x, y, w, h);
+    this->setFrame(fc, fa, fs);
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void WidgetFrame::setFrame(Lcd::Color c, Lcd::Alpha a, Lcd::LineStyle s) {
+    //
     this->frame_color = c;
     this->frame_alpha = a;
     this->frame_style = s;

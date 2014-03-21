@@ -25,13 +25,16 @@
  */
 class WidgetFrame: public Widget {
     protected:
+        virtual void self_redraw(bool force_redraw);
         Lcd::Color frame_color;
         Lcd::Alpha frame_alpha;
         Lcd::LineStyle frame_style;
-        virtual void self_redraw(bool force_redraw);
     public:
+        WidgetFrame(void);
         WidgetFrame(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
-                    Lcd::Color c, Lcd::Alpha a, Lcd::LineStyle s);
+                    Lcd::Color bc, Lcd::Alpha ba,
+                    Lcd::Color fc, Lcd::Alpha fa, Lcd::LineStyle fs);
+        void setFrame(Lcd::Color c, Lcd::Alpha a, Lcd::LineStyle s);
 };
 
 /*===========================================================================*/

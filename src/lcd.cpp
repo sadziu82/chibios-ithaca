@@ -136,6 +136,7 @@ void Lcd::updateScreen(void) {
             this->page_xe = this->page_xs + this->page_width - 1;
             // by default we will not flush page
             this->page_need_flush = this->main_window->page_flush_needed();
+            //consoleDebug("%d, %d, %d\r\n", this->page_xs, this->page_ys, this->page_need_flush);
             this->main_window->redraw(this->page_need_flush);
             // call virtual flushing method
             this->flushPage();

@@ -25,20 +25,27 @@
  */
 class WidgetLabel: public WidgetFrame {
     protected:
-        char *text;
-        Font *font;
-        Lcd::TextAlign text_align;
-        Lcd::Color text_color;
-        Lcd::Alpha text_alpha;
+        //
         virtual void self_redraw(bool force_redraw);
         virtual void update_data(void);
         //
+        char *text;
+        Font *font;
+        //
         char *fmt;
         void *data;
+        //
+        Lcd::TextAlign text_align;
+        Lcd::Color text_color;
+        Lcd::Alpha text_alpha;
+        //
         Widget::DataSourceType data_type;
     public:
+        WidgetLabel(void);
         WidgetLabel(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
-                    Lcd::Color c, Lcd::Alpha a, Lcd::LineStyle s);
+                    Lcd::Color bc, Lcd::Alpha ba,
+                    Lcd::Color fc, Lcd::Alpha fa, Lcd::LineStyle fs,
+                    Font *font, Lcd::TextAlign ha, Lcd::Color tc, Lcd::Alpha ta);
         void setFont(Font *font, Lcd::TextAlign ha, Lcd::Color tc, Lcd::Alpha ta);
         void setText(char *fmt, ...);
         void setDataSource(char *fmt, uint8_t *data);

@@ -31,5 +31,6 @@ ITHACACPPSRC += $(ITHACALIB)/src/lcd.cpp \
                 $(ITHACALIB)/src/widget.cpp \
                 $(ITHACALIB)/src/widget/main_window.cpp \
                 $(ITHACALIB)/src/widget/frame.cpp \
-                $(ITHACALIB)/src/widget/label.cpp
+                $(ITHACALIB)/src/widget/label.cpp \
+                $(ITHACALIB)/src/widget/top.cpp
 

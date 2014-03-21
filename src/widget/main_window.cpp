@@ -26,8 +26,9 @@
  * @brief   ...
  * @details ...
  */
-WidgetMainWindow::WidgetMainWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h) :
-                                   Widget(x, y, w, h) {
+WidgetMainWindow::WidgetMainWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
+                                   Lcd::Color c, Lcd::Alpha a) :
+                                   Widget(x, y, w, h, c, a) {
     //
     consoleDebug("WidgetMainWindow(%d, %d, %d, %d\r\n", x, y, w, h);
 }

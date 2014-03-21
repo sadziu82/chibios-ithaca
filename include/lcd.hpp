@@ -189,11 +189,11 @@ inline uint16_t Lcd::getHeight(void) {
 inline void Lcd::putPixel(uint16_t x, uint16_t y, Color c, Alpha a) {
     // FIXME add alpha handling
     (void)a;
-    //
-    if ((x >= this->width) || (y >= this->height)) {
-        consoleDebug("outside screen\r\n");
-        return;
-    }
+    //// //
+    //// if ((x >= this->width) || (y >= this->height)) {
+    ////     consoleDebug("outside screen\r\n");
+    ////     return;
+    //// }
     //
     if ((x < this->page_xs) || (x > this->page_xe) ||
         (y < this->page_ys) || (y > this->page_ye)) {

@@ -27,7 +27,8 @@ class WidgetMainWindow : public Widget {
     protected:
         virtual void self_redraw(bool force_redraw);
     public:
-        WidgetMainWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+        WidgetMainWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
+                         Lcd::Color c, Lcd::Alpha a);
 };
 
 /*===========================================================================*/
