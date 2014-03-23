@@ -31,6 +31,7 @@
  * MCU type, supported types are defined in ./os/hal/platforms/hal_lld.h.
  */
 #define STM32F10X_HD
+#define STM32F1XX
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
