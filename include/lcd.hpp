@@ -74,6 +74,9 @@ class Lcd {
         inline uint16_t getWidth(void);
         inline uint16_t getHeight(void);
         inline void putPixel(uint16_t x, uint16_t y, Color c, Alpha a);
+        void clearPage(Color c);
+        void drawHLine(uint16_t x, uint16_t y, uint16_t l, Color c, Alpha a);
+        void drawVLine(uint16_t x, uint16_t y, uint16_t l, Color c, Alpha a);
         //uint8_t drawChar(uint16_t x, uint16_t y, Font *font, char c,
         //                 Color fc, Alpha fa, Color bc, Alpha ba);
 };
@@ -189,22 +192,10 @@ inline uint16_t Lcd::getHeight(void) {
 inline void Lcd::putPixel(uint16_t x, uint16_t y, Color c, Alpha a) {
     // FIXME add alpha handling
     (void)a;
-    //// //
-    //// if ((x >= this->width) || (y >= this->height)) {
-    ////     consoleDebug("outside screen\r\n");
-    ////     return;
-    //// }
     //
-    if ((x < this->page_xs) || (x > this->page_xe) ||
-        (y < this->page_ys) || (y > this->page_ye)) {
-        return;
-    }
-    //
-    uint16_t idx;
-    x -= this->page_xs;
-    y -= this->page_ys;
-    idx = (y * this->page_width) + x;
-    this->page_buffer_draw[idx] = static_cast<uint16_t>(c);
+    x &= 0x1F;
+    y &= 0x1F;
+    this->page_buffer_draw[(y * this->page_width) + x] = static_cast<uint16_t>(c);
 }
 
 /*===========================================================================*/

@@ -147,5 +147,73 @@ void Lcd::updateScreen(void) {
     consoleDebug("screenUpdate() took %d ms\r\n", RTT2MS(screen_update_time.last));
 };
 
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Lcd::clearPage(Color c) {
+    //
+    uint16_t i;
+    //
+    for (i = 0; i < this->page_size; i++) {
+        this->page_buffer_draw[i] = static_cast<uint16_t>(c);
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Lcd::drawHLine(uint16_t x, uint16_t y, uint16_t l, Color c, Alpha a) {
+    // FIXME add alpha handling
+    (void)a;
+    //
+    uint16_t xmin = MAX(this->page_xs, x),
+             xmax = MIN(this->page_xe, x + l);
+    //
+    if ((x + l < this->page_xs) || (x > this->page_xe) ||
+        (y < this->page_ys) || (y > this->page_ye)) {
+        return;
+    }
+    //
+    xmin &= 0x1F;
+    xmax &= 0x1F;
+    //
+    uint16_t idx;
+    idx = ((y - this->page_ys) * this->page_width) + xmin;
+    //
+    for (x = xmin; x <= xmax; x++) {
+        this->page_buffer_draw[idx++] = static_cast<uint16_t>(c);
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Lcd::drawVLine(uint16_t x, uint16_t y, uint16_t l, Color c, Alpha a) {
+    // FIXME add alpha handling
+    (void)a;
+    //
+    uint16_t ymin = MAX(this->page_ys, y),
+             ymax = MIN(this->page_ye, y + l);
+    //
+    if ((x < this->page_xs) || (x > this->page_xe) ||
+        (y + l < this->page_ys) || (y > this->page_ye)) {
+        return;
+    }
+    //
+    ymin &= 0x1F;
+    ymax &= 0x1F;
+    //
+    uint16_t idx;
+    idx = (ymin * this->page_width) + (x & 0x1F);
+    //
+    for (y = ymin; y <= ymax; y++) {
+        this->page_buffer_draw[idx] = static_cast<uint16_t>(c);
+        idx += this->page_width;
+    }
+}
+
 #endif /* ITHACA_USE_LCD */
 

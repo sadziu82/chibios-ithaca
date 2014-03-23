@@ -75,29 +75,6 @@ void WidgetFrame::self_redraw(bool force_redraw) {
     ymin = MAX(lcd->getPageYS(), this->ys);
     ymax = MIN(lcd->getPageYE(), this->ye);
     //
-    switch (this->frame_style) {
-        case Lcd::LineStyle::None:
-            style_len = 1;
-            style_space = 1;
-            break;
-        case Lcd::LineStyle::Solid:
-            style_len = 1;
-            style_space = 0;
-            break;
-        case Lcd::LineStyle::Dotted:
-            style_len = 2;
-            style_space = 1;
-            break;
-        case Lcd::LineStyle::Dashed:
-            style_len = 4;
-            style_space = 2;
-            break;
-        case Lcd::LineStyle::DDashed:
-            style_len = 6;
-            style_space = 3;
-            break;
-    }
-    //
     if (this->bg_alpha != Lcd::Alpha::Transparent) {
         for (y = ymin; y <= ymax; y++) {
             for (x = xmin; x <= xmax; x++) {
@@ -107,37 +84,91 @@ void WidgetFrame::self_redraw(bool force_redraw) {
     }
     //
     if (this->frame_alpha != Lcd::Alpha::Transparent) {
-        if ((this->ys >= this->lcd->getPageYS()) &&
-            (this->ys <= this->lcd->getPageYE())) {
-            for (x = xmin; x <= xmax; x++) {
-                if (x % style_len >= style_space) {
-                    lcd->putPixel(x, this->ys, this->frame_color, this->frame_alpha);
+        //
+        style_len = style_space = 0;
+        //
+        switch (this->frame_style) {
+            case Lcd::LineStyle::None:
+                break;
+            case Lcd::LineStyle::Solid:
+                //
+                this->lcd->drawHLine(this->xs, this->ys, this->xe - this->xs,
+                                     this->frame_color, this->frame_alpha);
+                this->lcd->drawHLine(this->xs, this->ye, this->xe - this->xs,
+                                     this->frame_color, this->frame_alpha);
+                this->lcd->drawVLine(this->xs, this->ys + 1, this->ye - this->ys - 2,
+                                     this->frame_color, this->frame_alpha);
+                this->lcd->drawVLine(this->xe, this->ys + 1, this->ye - this->ys - 2,
+                                     this->frame_color, this->frame_alpha);
+                break;
+            case Lcd::LineStyle::DDashed:
+                style_len += 4;
+                style_space += 2;
+            case Lcd::LineStyle::Dashed:
+                style_len += 4;
+                style_space += 2;
+                //
+                if ((this->ys >= this->lcd->getPageYS()) &&
+                    (this->ys <= this->lcd->getPageYE())) {
+                    for (x = xmin; x <= xmax; x++) {
+                        if (x % style_len >= style_space) {
+                            lcd->putPixel(x, this->ys, this->frame_color, this->frame_alpha);
+                        }
+                    }
                 }
-            }
-        }
-        if ((this->ye >= this->lcd->getPageYS()) &&
-            (this->ye <= this->lcd->getPageYE())) {
-            for (x = xmin; x <= xmax; x++) {
-                if (x % style_len >= style_space) {
-                    lcd->putPixel(x, this->ye, this->frame_color, this->frame_alpha);
+                if ((this->ye >= this->lcd->getPageYS()) &&
+                    (this->ye <= this->lcd->getPageYE())) {
+                    for (x = xmin; x <= xmax; x++) {
+                        if (x % style_len >= style_space) {
+                            lcd->putPixel(x, this->ye, this->frame_color, this->frame_alpha);
+                        }
+                    }
                 }
-            }
-        }
-        if ((this->xs >= this->lcd->getPageXS()) &&
-            (this->xs <= this->lcd->getPageXE())) {
-            for (y = ymin; y <= ymax; y++) {
-                if (y % style_len >= style_space) {
-                    lcd->putPixel(this->xs, y, this->frame_color, this->frame_alpha);
+                if ((this->xs >= this->lcd->getPageXS()) &&
+                    (this->xs <= this->lcd->getPageXE())) {
+                    for (y = ymin; y <= ymax; y++) {
+                        if (y % style_len >= style_space) {
+                            lcd->putPixel(this->xs, y, this->frame_color, this->frame_alpha);
+                        }
+                    }
                 }
-            }
-        }
-        if ((this->xe >= this->lcd->getPageXS()) &&
-            (this->xe <= this->lcd->getPageXE())) {
-            for (y = ymin; y <= ymax; y++) {
-                if (y % style_len >= style_space) {
-                    lcd->putPixel(this->xe, y, this->frame_color, this->frame_alpha);
+                if ((this->xe >= this->lcd->getPageXS()) &&
+                    (this->xe <= this->lcd->getPageXE())) {
+                    for (y = ymin; y <= ymax; y++) {
+                        if (y % style_len >= style_space) {
+                            lcd->putPixel(this->xe, y, this->frame_color, this->frame_alpha);
+                        }
+                    }
                 }
-            }
+                break;
+            case Lcd::LineStyle::Dotted:
+                style_len += 2;
+                style_space += 1;
+                //
+                if ((this->ys >= this->lcd->getPageYS()) &&
+                    (this->ys <= this->lcd->getPageYE())) {
+                    for (x = xmin; x <= xmax; x += 2) {
+                        lcd->putPixel(x, this->ys, this->frame_color, this->frame_alpha);
+                    }
+                }
+                if ((this->ye >= this->lcd->getPageYS()) &&
+                    (this->ye <= this->lcd->getPageYE())) {
+                    for (x = xmin; x <= xmax; x += 2) {
+                        lcd->putPixel(x, this->ye, this->frame_color, this->frame_alpha);
+                    }
+                }
+                if ((this->xs >= this->lcd->getPageXS()) &&
+                    (this->xs <= this->lcd->getPageXE())) {
+                    for (y = ymin; y <= ymax; y += 2) {
+                            lcd->putPixel(this->xs, y, this->frame_color, this->frame_alpha);
+                    }
+                }
+                if ((this->xe >= this->lcd->getPageXS()) &&
+                    (this->xe <= this->lcd->getPageXE())) {
+                    for (y = ymin; y <= ymax; y += 2) {
+                        lcd->putPixel(this->xe, y, this->frame_color, this->frame_alpha);
+                    }
+                }
         }
     }
 }

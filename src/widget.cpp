@@ -240,6 +240,17 @@ void Widget::drawText(uint16_t col, uint16_t row,
     }
     y = row;
     //
+    const uint16_t xmin = MAX(this->lcd->getPageXS(), this->xs),
+                   xmax = MIN(this->lcd->getPageXE(), this->xe),
+                   ymin = MAX(this->lcd->getPageYS(), this->ys),
+                   ymax = MIN(this->lcd->getPageYE(), this->ye);
+    const uint8_t h = font->getHeight();
+    //
+    if ((x + tw < xmin) || (x > xmax) ||
+        (y + h < ymin) || (y > ymax)) {
+        return;
+    }
+    //
     while (*text != '\0') {
         //
         x += this->drawChar(x, y, font, *text++, fc, fa, bc, ba);
@@ -257,28 +268,31 @@ uint8_t Widget::drawChar(uint16_t col, uint16_t row, Font *font, char c,
         return 0;
     }
     //
-    uint8_t w, h;
     const uint8_t *bitmap = font->getCharBitmap(c);
-    w = font->getCharWidth(c);
-    h = font->getHeight();
+    if (bitmap == NULL) {
+        return 0;
+    }
     //
-    if ((col + w < this->lcd->getPageXS()) ||
-        (col > this->lcd->getPageXE()) ||
-        (row + h < this->lcd->getPageYS()) ||
-        (row > this->lcd->getPageYE())) {
+    const uint16_t xmin = MAX(this->lcd->getPageXS(), this->xs),
+                   xmax = MIN(this->lcd->getPageXE(), this->xe),
+                   ymin = MAX(this->lcd->getPageYS(), this->ys),
+                   ymax = MIN(this->lcd->getPageYE(), this->ye);
+    const uint8_t w = font->getCharWidth(c),
+                  h = font->getHeight();
+    //
+    if ((col + w < xmin) || (col > xmax) ||
+        (row + h < ymin) || (row > ymax)) {
         return w;
     }
     //
     uint16_t x, y;
     uint8_t m, bit;
     m = '!';
-    if (bitmap == NULL) {
-        return 0;
-    }
     for (y = row; y < row + h; y++) {
-        if (y < this->ys) {
+        if (y < ymin) {
+            bitmap += (font->getHeight() >> 3);
             continue;
-        } else if (y > this->ye) {
+        } else if (y > ymax) {
             break;
         }
         bit = 0;
@@ -286,7 +300,12 @@ uint8_t Widget::drawChar(uint16_t col, uint16_t row, Font *font, char c,
             if (bit++ % 8 == 0) {
                 m = *bitmap++;
             }
-            if ((x >= this->xs) && (x <= this->xe)) {
+            if (x < xmin) {
+                m <<= 1;
+                continue;
+            } else if (x > xmax) {
+                break;
+            } else {
                 if (m & 0x80) {
                     this->lcd->putPixel(x, y, fc, fa);
                 } else {
@@ -294,8 +313,8 @@ uint8_t Widget::drawChar(uint16_t col, uint16_t row, Font *font, char c,
                         this->lcd->putPixel(x, y, bc, ba);
                     }
                 }
+                m <<= 1;
             }
-            m <<= 1;
         }
     }
     return w;

@@ -44,14 +44,7 @@ void WidgetMainWindow::self_redraw(bool force_redraw) {
     }
     //
     Widget::self_redraw(force_redraw);
-    //
-    uint16_t x, y;
-    //
-    for (y = this->lcd->getPageYS(); y <= this->lcd->getPageYE(); y++) {
-        for (x = this->lcd->getPageXS(); x <= this->lcd->getPageXE(); x++) {
-            this->lcd->putPixel(x, y, this->bg_color, Lcd::Alpha::Solid);
-        }
-    }
+    this->lcd->clearPage(this->bg_color);
 }
 
 #endif /* ITHACA_USE_WIDGET_MAIN_WINDOW */
