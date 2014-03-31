@@ -1,7 +1,6 @@
 #ifndef _LCD_HPP_
 #define _LCD_HPP_
 
-
 #if ITHACA_USE_LCD || defined(__DOXYGEN__)
 
 /*===========================================================================*/
@@ -12,10 +11,16 @@
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
 
-//
+/*
+ * @brief   ...
+ * @details ...
+ */
 class Widget;
 
-//
+/*
+ * @brief   ...
+ * @details ...
+ */
 class Font;
 
 /*===========================================================================*/
@@ -32,6 +37,7 @@ class Font;
  */
 class Lcd {
     public:
+        //
         enum class Rotation : uint8_t;
         enum class Color : uint16_t;
         enum class Alpha : uint8_t;
@@ -77,11 +83,13 @@ class Lcd {
         void clearPage(Color c);
         void drawHLine(uint16_t x, uint16_t y, uint16_t l, Color c, Alpha a);
         void drawVLine(uint16_t x, uint16_t y, uint16_t l, Color c, Alpha a);
-        //uint8_t drawChar(uint16_t x, uint16_t y, Font *font, char c,
-        //                 Color fc, Alpha fa, Color bc, Alpha ba);
+        void drawDot(uint16_t x, uint16_t y, uint16_t r, Color c, Alpha a);
 };
 
-//
+/*
+ * @brief   ...
+ * @details ...
+ */
 enum class Lcd::Rotation : uint8_t {
     Normal = 0x01,
     Right = 0x02,
@@ -89,7 +97,10 @@ enum class Lcd::Rotation : uint8_t {
     Left = 0x04,
 };
 
-//
+/*
+ * @brief   ...
+ * @details ...
+ */
 enum class Lcd::Color : uint16_t {
     Black = 0x0000,
     Red = 0x00F8,
@@ -98,14 +109,20 @@ enum class Lcd::Color : uint16_t {
     White = 0xFFFF,
 };
 
-//
+/*
+ * @brief   ...
+ * @details ...
+ */
 enum class Lcd::Alpha : uint8_t {
     Transparent = 0x00,
     Half = 0x80,
     Solid = 0xFF,
 };
 
-//
+/*
+ * @brief   ...
+ * @details ...
+ */
 enum class Lcd::LineStyle : uint8_t {
     None,
     Solid,
@@ -114,7 +131,10 @@ enum class Lcd::LineStyle : uint8_t {
     DDashed,
 };
 
-//
+/*
+ * @brief   ...
+ * @details ...
+ */
 enum class Lcd::TextAlign : uint8_t {
     Left,
     Center,
@@ -195,6 +215,7 @@ inline void Lcd::putPixel(uint16_t x, uint16_t y, Color c, Alpha a) {
     //
     x &= 0x1F;
     y &= 0x1F;
+    //
     this->page_buffer_draw[(y * this->page_width) + x] = static_cast<uint16_t>(c);
 }
 

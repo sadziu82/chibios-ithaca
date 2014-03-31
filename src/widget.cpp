@@ -61,6 +61,18 @@ void Widget::setGeometry(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
     this->xe = x + w - 1;
     this->ys = y;
     this->ye = y + h - 1;
+    if (this->parent != NULL) {
+        this->parent->childGeometryChanged();
+    }
+};
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Widget::childGeometryChanged(void) {
+    //
+    this->need_redraw = true;
 };
 
 /*
@@ -72,7 +84,7 @@ void Widget::setBgColor(Lcd::Color c, Lcd::Alpha a) {
     this->bg_color = c;
     this->bg_alpha = a;
 }
-;
+
 /*
  * @brief   ...
  * @details ...
@@ -87,6 +99,27 @@ void Widget::updateData(void) {
         c->updateData();
         c = c->getNext();
     }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+bool Widget::processEvent(input_event_t event) {
+    //
+    if (this->process_event(event) == true) {
+        return true;
+    }
+    //
+    Widget *c;
+    c = this->child;
+    while (c != NULL) {
+        if (c->processEvent(event) == true) {
+            return true;
+        }
+        c = c->getNext();
+    }
+    return false;
 }
 
 /*
@@ -119,6 +152,7 @@ void Widget::redraw(bool force_redraw) {
 void Widget::assignLcd(Lcd *lcd) {
     this->lcd = lcd;
     this->parent = NULL;
+    this->need_redraw = true;
 }
 
 /*
@@ -146,6 +180,15 @@ void Widget::self_redraw(bool force_redraw) {
  * @details ...
  */
 void Widget::update_data(void) {
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+bool Widget::process_event(input_event_t event) {
+    (void)event;
+    return false;
 }
 
 /*

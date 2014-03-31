@@ -22,6 +22,17 @@ class Lcd;
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
 
+//
+typedef enum {
+    
+} input_event_type_t;
+
+//
+typedef struct {
+    input_event_type_t type;
+    uint8_t code;
+} input_event_t;
+
 /*
  * @brief   ...
  * @details ...
@@ -33,6 +44,7 @@ class Widget {
         //
         virtual void self_redraw(bool force_redraw);
         virtual void update_data(void);
+        virtual bool process_event(input_event_t event);
         //
         Lcd *lcd;
         Widget *parent;
@@ -56,6 +68,7 @@ class Widget {
         bool page_flush_needed(void);
         void redraw(bool force_redraw);
         void updateData(void);
+        bool processEvent(input_event_t event);
         void assignLcd(Lcd *lcd);
         void setParent(Widget *parent);
         //
@@ -68,6 +81,11 @@ class Widget {
                        Font *font, char *text, Lcd::TextAlign ha,
                        Lcd::Color fc, Lcd::Alpha fa,
                        Lcd::Color bc, Lcd::Alpha ba);
+        inline uint16_t getXS(void);
+        inline uint16_t getXE(void);
+        inline uint16_t getYS(void);
+        inline uint16_t getYE(void);
+        void childGeometryChanged(void);
 };
 
 //
@@ -80,6 +98,38 @@ enum class Widget::DataSourceType : uint8_t {
     UINT32,
     INT32,
 };
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+inline uint16_t Widget::getXS(void) {
+    return this->xs;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+inline uint16_t Widget::getXE(void) {
+    return this->xe;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+inline uint16_t Widget::getYS(void) {
+    return this->ys;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+inline uint16_t Widget::getYE(void) {
+    return this->ye;
+}
 
 /*===========================================================================*/
 /* Driver macros.                                                            */

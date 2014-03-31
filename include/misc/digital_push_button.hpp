@@ -1,51 +1,7 @@
-#ifndef _ITHACA_H_
-#define _ITHACA_H_
+#ifndef _DIGITAL_PUSH_BUTTON_HPP_
+#define _DIGITAL_PUSH_BUTTON_HPP_
 
-#include "ch.h"
-#include "hal.h"
-
-#include "ithacaconf.h"
-
-#if ITHACA_USE_LIB || defined(__DOXYGEN__)
-
-/*
- * @brief   ...
- * @details ...
- */
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
-/*
- * @brief   ...
- * @details ...
- */
-typedef struct {
-    // ...
-    char *name;
-    bool flag;
-} ithaca_lock_t;
-
-#include <stdarg.h>
-#include <misc/chsprintf.h>
-
-#include <misc/device_id.h>
-
-#include <misc/console.h>
-
-#include <misc/block.h>
-#include <misc/rung.h>
-#include <misc/ladder.h>
-
-//#include <misc/button.h>
-#include <misc/digital_output.h>
-//#include <misc/keypad44.h>
-#include <misc/mono_timer.h>
-
-#include <misc/pca9633.h>
-#include <sensors.h>
-#include <misc/imu.h>
-
-#include <radio.h>
+#if ITHACA_USE_DIGITAL_PUSH_BUTTON || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -63,6 +19,23 @@ typedef struct {
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
 
+/*
+ * @brief   ...
+ * @details ...
+ */
+class DigitalPushButton : public DigitalInput {
+    protected:
+        static const uint16_t press_delay = 250;
+        //
+        bool press_active;
+        systime_t press_delay_end;
+        uint8_t press_count;
+    public:
+        DigitalPushButton(ioportid_t io_port, uint8_t io_pin, bool idle_low = false);
+        void refresh(void);
+        bool pressed(uint8_t n = 1);
+};
+
 /*===========================================================================*/
 /* Driver macros.                                                            */
 /*===========================================================================*/
@@ -71,25 +44,7 @@ typedef struct {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-//
-bool ithacaLock(ithaca_lock_t *lock);
-bool ithacaLockTimeout(ithaca_lock_t *lock, systime_t tm);
-void ithacaUnlock(ithaca_lock_t *lock);
-bool ithacaLockISR(ithaca_lock_t *lock);
-void ithacaUnlockISR(ithaca_lock_t *lock);
-//
-char *asprintf(char *buffer, char *fmt, ...);
+#endif /* ITHACA_USE_DIGITAL_PUSH_BUTTON */
 
-//
-extern EXTConfig ext1_cfg;
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* ITHACA_USE_LIB */
-
-#endif /* _ITHACA_H_ */
+#endif /* _DIGITAL_PUSH_BUTTON_HPP_ */
 

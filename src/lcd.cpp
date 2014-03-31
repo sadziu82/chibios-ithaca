@@ -75,6 +75,12 @@ bool Lcd::flushPage(void) {
  */
 Lcd::Lcd(uint16_t width, uint16_t height,
          uint16_t page_width, uint16_t page_height) {
+    // TODO fixed for now
+    if ((page_width != 0x20) || (page_height != 0x20)) {
+        consoleDebug("page_width, page_height must be 0x20\r\n");
+        chThdSleepMilliseconds(100);
+        chSysHalt();
+    }
     //
     this->raw_width = this->width = width;
     this->raw_height = this->height = height;
@@ -122,6 +128,12 @@ void Lcd::updateScreen(void) {
     TimeMeasurement screen_update_time;
     tmObjectInit(&screen_update_time);
     tmStartMeasurement(&screen_update_time);
+    //
+    input_event_t event;
+    //
+    if (this->main_window->processEvent(event) == false) {
+        consoleDebug("event not serviced\r\n");
+    }
     // update data in all widgets
     this->main_window->updateData();
     // redraw widgets if necessary
@@ -212,6 +224,43 @@ void Lcd::drawVLine(uint16_t x, uint16_t y, uint16_t l, Color c, Alpha a) {
     for (y = ymin; y <= ymax; y++) {
         this->page_buffer_draw[idx] = static_cast<uint16_t>(c);
         idx += this->page_width;
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Lcd::drawDot(uint16_t x, uint16_t y, uint16_t r, Color c, Alpha a) {
+    // FIXME add alpha handling
+    (void)a;
+    uint16_t r_2 = r / 2;
+    //
+    if ((x + r < this->page_xs) || (x - r > this->page_xe) ||
+        (y + r < this->page_ys) || (y - r > this->page_ye)) {
+        return;
+    }
+    //
+    uint16_t xmin = MAX(this->page_xs, x - r_2),
+             xmax = MIN(this->page_xe, x + r_2),
+             ymin = MAX(this->page_ys, y - r_2),
+             ymax = MIN(this->page_ye, y + r_2);
+
+    int i = r, j = 0;
+    int radiusError = 1 - i;
+ 
+    while (i >= j) {
+        this->drawHLine(-i + x, j + y, i * 2, c, a);
+        this->drawHLine(-i + x, -j + y, i * 2, c, a);
+        this->drawHLine(-j + x, -i + y, j * 2, c, a);
+        this->drawHLine(-j + x, i + y, j * 2, c, a);
+        j++;
+        if (radiusError < 0) {
+            radiusError += 2 * j + 1;
+        } else {
+            i--;
+            radiusError+= 2 * (j - i + 1);
+        }
     }
 }
 

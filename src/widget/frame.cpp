@@ -96,10 +96,12 @@ void WidgetFrame::self_redraw(bool force_redraw) {
                                      this->frame_color, this->frame_alpha);
                 this->lcd->drawHLine(this->xs, this->ye, this->xe - this->xs,
                                      this->frame_color, this->frame_alpha);
-                this->lcd->drawVLine(this->xs, this->ys + 1, this->ye - this->ys - 2,
-                                     this->frame_color, this->frame_alpha);
-                this->lcd->drawVLine(this->xe, this->ys + 1, this->ye - this->ys - 2,
-                                     this->frame_color, this->frame_alpha);
+                if (this->ye - this->ys > 1) {
+                    this->lcd->drawVLine(this->xs, this->ys + 1, this->ye - this->ys - 2,
+                                        this->frame_color, this->frame_alpha);
+                    this->lcd->drawVLine(this->xe, this->ys + 1, this->ye - this->ys - 2,
+                                        this->frame_color, this->frame_alpha);
+                }
                 break;
             case Lcd::LineStyle::DDashed:
                 style_len += 4;

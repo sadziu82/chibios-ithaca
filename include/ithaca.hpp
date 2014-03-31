@@ -25,6 +25,12 @@
 #include <widget/frame.hpp>
 #include <widget/label.hpp>
 #include <widget/top.hpp>
+#include <widget/widget_stick.hpp>
+#include <widget/ping_pong_player.hpp>
+#include <widget/ping_pong_ball.hpp>
+//
+#include <misc/digital_input.hpp>
+#include <misc/digital_push_button.hpp>
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
