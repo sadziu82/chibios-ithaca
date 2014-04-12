@@ -90,6 +90,9 @@ Lcd::Lcd(uint16_t width, uint16_t height,
     //
     this->page_size = this->page_width * this->page_height;
     this->raw_page_size = this->page_size * sizeof(Lcd::Color);
+    //
+    this->event_queue = NULL;
+    this->root_window = NULL;
 };
 
 /*
@@ -108,11 +111,21 @@ void Lcd::init(void) {
  * @brief   ...
  * @details ...
  */
-void Lcd::setMainWindow(Widget *widget) {
+void Lcd::setRootWindow(Widget *widget) {
     //uint16_t x;
-    this->main_window = widget;
+    this->root_window = widget;
     widget->assignLcd(this);
-    consoleDebug("setMainWindow()\r\n");
+    consoleDebug("setRootWindow()\r\n");
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Lcd::setEventQueue(InputEventQueue *queue) {
+    //uint16_t x;
+    this->event_queue = queue;
+    consoleDebug("setEventQueue()\r\n");
 }
 
 /*
@@ -121,21 +134,23 @@ void Lcd::setMainWindow(Widget *widget) {
  */
 void Lcd::updateScreen(void) {
     //
-    if (this->main_window == NULL) {
+    if (this->root_window == NULL) {
         return;
     }
     //
     TimeMeasurement screen_update_time;
     tmObjectInit(&screen_update_time);
     tmStartMeasurement(&screen_update_time);
-    //
-    input_event_t event;
-    //
-    if (this->main_window->processEvent(event) == false) {
-        consoleDebug("event not serviced\r\n");
+    // process input events
+    if (this->event_queue != NULL) {
+        InputEvent *event = this->event_queue->popEvent();
+        if (event != NULL) {
+            this->root_window->processEvent(event);
+            chHeapFree(event);
+        }
     }
     // update data in all widgets
-    this->main_window->updateData();
+    this->root_window->updateData();
     // redraw widgets if necessary
     for (this->page_ys = 0; this->page_ys < this->height;
          this->page_ys += this->page_height) {
@@ -147,9 +162,9 @@ void Lcd::updateScreen(void) {
             //
             this->page_xe = this->page_xs + this->page_width - 1;
             // by default we will not flush page
-            this->page_need_flush = this->main_window->page_flush_needed();
+            this->page_need_flush = this->root_window->page_flush_needed();
             //consoleDebug("%d, %d, %d\r\n", this->page_xs, this->page_ys, this->page_need_flush);
-            this->main_window->redraw(this->page_need_flush);
+            this->root_window->redraw(this->page_need_flush);
             // call virtual flushing method
             this->flushPage();
         }

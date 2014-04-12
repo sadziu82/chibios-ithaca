@@ -1,6 +1,6 @@
 #include <ithaca.hpp>
 
-#if ITHACA_USE_DIGITAL_PUSH_BUTTON || defined(__DOXYGEN__)
+#if ITHACA_USE_INPUT_EVENT_QUEUE || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
@@ -26,45 +26,49 @@
  * @brief   ...
  * @details ...
  */
-DigitalPushButton::DigitalPushButton(ioportid_t io_port, uint8_t io_pin, bool idle_low) :
-              DigitalInput(io_port, io_pin, idle_low) {
-    //
-    this->pressed = false;
-    this->active = false;
-    this->delay_end = 0;
+InputEventQueue::InputEventQueue(void) {
+    this->event_count = 0;
 }
 
 /*
  * @brief   ...
  * @details ...
  */
-void DigitalPushButton::refresh(void) {
-    DigitalInput::refresh();
+void InputEventQueue::pushEvent(InputEvent *event) {
     //
-    this->active = false;
-    //
-    if (this->pressed) {
-        if (this->changed()) {
-            this->pressed = false;
-            this->delay_end = 0;
-        } else if (this->delay_end < chTimeNow()) {
-            this->active = true;
-            this->delay_end = chTimeNow() + MS2ST(this->auto_repeat_delay);
-        }
-    } else if (this->changed()) {
-        this->pressed = true;
-        this->active = true;
-        this->delay_end = chTimeNow() + MS2ST(2 * this->auto_repeat_delay);
+    if (this->event_count == this->max_events) {
+        consoleDebug("event queue full\r\n");
+        return;
     }
+    //
+    consoleDebug("adding event to queue: %d, %d\r\n", event->type, event->key);
+    this->events[this->event_count++] = event;
+    consoleDebug("event added into queue, length: %d\r\n", this->event_count);
 }
 
 /*
  * @brief   ...
  * @details ...
  */
-bool DigitalPushButton::keyPress(void) {
-    return this->active;
+InputEvent *InputEventQueue::popEvent(void) {
+    //
+    if (this->event_count == 0) {
+        consoleDebug("queue empty\r\n");
+        return NULL;
+    }
+    //
+    InputEvent *event;
+    uint8_t i;
+    // allocate memory for longer list
+    event = this->events[0];
+    consoleDebug("removing event from queue: %d, %d\r\n", event->type, event->key);
+    for (i = 1; i < this->event_count; i++) {
+        this->events[i - 1] = this->events[i];
+    }
+    this->event_count--;
+    consoleDebug("removed event from queue, length: %d\r\n", this->event_count);
+    return event;
 }
 
-#endif /* ITHACA_USE_DIGITAL_PUSH_BUTTON */
+#endif /* ITHACA_USE_INPUT_EVENT_QUEUE */
 

@@ -1,47 +1,7 @@
-#ifndef _ITHACA_HPP_
-#define _ITHACA_HPP_
+#ifndef _DIGITAL_PUSH_BUTTON_HPP_
+#define _DIGITAL_PUSH_BUTTON_HPP_
 
-#include "ch.h"
-#include "hal.h"
-
-#include "ithacaconf.h"
-
-#if ITHACA_USE_LIB || defined(__DOXYGEN__)
-
-//
-#include <ithaca.h>
-
-// C++ STL
-#include <list>
-
-//
-#include <misc/input_event.hpp>
-#include <misc/input_event_queue.hpp>
-
-//
-#include <lcd.hpp>
-#include <lcd/st7735.hpp>
-
-//
-#include <font.hpp>
-#include <font/font_std.hpp>
-
-//
-#include <widget.hpp>
-#include <widget/main_window.hpp>
-#include <widget/frame.hpp>
-#include <widget/label.hpp>
-#include <widget/widget_push_button.hpp>
-#include <widget/top.hpp>
-#include <widget/widget_stick.hpp>
-#include <widget/ping_pong_player.hpp>
-#include <widget/ping_pong_ball.hpp>
-//
-#include <misc/digital_input.hpp>
-#include <misc/digital_push_button.hpp>
-
-//
-#include <qobject.hpp>
+#if ITHACA_USE_DIGITAL_PUSH_BUTTON || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -59,6 +19,23 @@
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
 
+/*
+ * @brief   ...
+ * @details ...
+ */
+class DigitalPushButton : public DigitalInput {
+    protected:
+        static const uint16_t press_delay = 200;
+        //
+        bool press_active;
+        systime_t press_delay_end;
+        uint8_t press_count;
+    public:
+        DigitalPushButton(ioportid_t io_port, uint8_t io_pin, bool idle_low = false);
+        void refresh(void);
+        bool pressed(uint8_t n = 1);
+};
+
 /*===========================================================================*/
 /* Driver macros.                                                            */
 /*===========================================================================*/
@@ -67,7 +44,7 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#endif /* ITHACA_USE_LIB */
+#endif /* ITHACA_USE_DIGITAL_PUSH_BUTTON */
 
-#endif /* _ITHACA_HPP_ */
+#endif /* _DIGITAL_PUSH_BUTTON_HPP_ */
 

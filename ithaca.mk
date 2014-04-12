@@ -24,7 +24,9 @@ ITHACASRC += $(ITHACALIB)/src/misc/device_id.c \
              #$(ITHACALIB)/src/misc/button.c \
              #$(ITHACALIB)/src/misc/keypad44.c \
 
-ITHACACPPSRC += $(ITHACALIB)/src/lcd.cpp \
+ITHACACPPSRC += $(ITHACALIB)/misc/input_event.cpp \
+                $(ITHACALIB)/misc/input_event_queue.cpp \
+                $(ITHACALIB)/src/lcd.cpp \
                 $(ITHACALIB)/src/lcd/st7735.cpp \
                 $(ITHACALIB)/src/font.cpp \
                 $(ITHACALIB)/src/font/font_std.cpp \
@@ -32,10 +34,11 @@ ITHACACPPSRC += $(ITHACALIB)/src/lcd.cpp \
                 $(ITHACALIB)/src/widget/main_window.cpp \
                 $(ITHACALIB)/src/widget/frame.cpp \
                 $(ITHACALIB)/src/widget/label.cpp \
+                $(ITHACALIB)/src/widget/widget_push_button.cpp \
                 $(ITHACALIB)/src/widget/top.cpp \
                 $(ITHACALIB)/src/widget/widget_stick.cpp \
                 $(ITHACALIB)/src/widget/ping_pong_player.cpp \
                 $(ITHACALIB)/src/widget/ping_pong_ball.cpp \
                 $(ITHACALIB)/src/misc/digital_input.cpp \
-                $(ITHACALIB)/src/misc/digital_push_button.cpp
-
+                $(ITHACALIB)/src/misc/digital_push_button.cpp \
+                $(ITHACALIB)/src/qobject.cpp

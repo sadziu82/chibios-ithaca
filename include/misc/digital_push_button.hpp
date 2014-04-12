@@ -25,15 +25,14 @@
  */
 class DigitalPushButton : public DigitalInput {
     protected:
-        static const uint16_t press_delay = 250;
+        static const uint16_t auto_repeat_delay = 250;
         //
-        bool press_active;
-        systime_t press_delay_end;
-        uint8_t press_count;
+        bool pressed, active;
+        systime_t delay_end;
     public:
         DigitalPushButton(ioportid_t io_port, uint8_t io_pin, bool idle_low = false);
         void refresh(void);
-        bool pressed(uint8_t n = 1);
+        bool keyPress(void);
 };
 
 /*===========================================================================*/

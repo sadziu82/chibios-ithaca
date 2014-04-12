@@ -23,6 +23,9 @@ class Lcd;
 /*===========================================================================*/
 
 //
+typedef void (*action_t)(void *arg);
+
+//
 typedef enum {
     
 } input_event_type_t;
@@ -44,7 +47,7 @@ class Widget {
         //
         virtual void self_redraw(bool force_redraw);
         virtual void update_data(void);
-        virtual bool process_event(input_event_t event);
+        virtual bool process_event(InputEvent *event);
         //
         Lcd *lcd;
         Widget *parent;
@@ -68,7 +71,7 @@ class Widget {
         bool page_flush_needed(void);
         void redraw(bool force_redraw);
         void updateData(void);
-        bool processEvent(input_event_t event);
+        bool processEvent(InputEvent *event);
         void assignLcd(Lcd *lcd);
         void setParent(Widget *parent);
         //
@@ -86,6 +89,7 @@ class Widget {
         inline uint16_t getYS(void);
         inline uint16_t getYE(void);
         void childGeometryChanged(void);
+        void addAction(InputEvent *event);
 };
 
 //

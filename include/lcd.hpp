@@ -64,12 +64,14 @@ class Lcd {
         void setRotation(Rotation r);
         virtual bool flushPage(void);
         //
-        Widget *main_window;
+        InputEventQueue *event_queue;
+        Widget *root_window;
     public:
         Lcd(uint16_t width, uint16_t height,
             uint16_t page_width, uint16_t page_height);
         void init(void);
-        void setMainWindow(Widget *widget);
+        void setRootWindow(Widget *widget);
+        void setEventQueue(InputEventQueue *queue);
         void updateScreen(void);
         inline uint16_t getPageXS(void);
         inline uint16_t getPageXE(void);
@@ -106,6 +108,7 @@ enum class Lcd::Color : uint16_t {
     Red = 0x00F8,
     Green = 0xE007,
     Blue = 0x1F00,
+    Grey = 0xF79E,
     White = 0xFFFF,
 };
 

@@ -1,6 +1,6 @@
-#include <ithaca.h>
+#include <ithaca.hpp>
 
-#if ITHACA_USE_CONSOLE || defined(__DOXYGEN__)
+#if ITHACA_USE_DIGITAL_PUSH_BUTTON || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
@@ -14,21 +14,6 @@
 /* Driver local variables and types.                                         */
 /*===========================================================================*/
 
-// 
-#define CONSOLE_BUFFER_SIZE 0x80
-
-// 
-char buffer[CONSOLE_BUFFER_SIZE];
-
-/*
- * @brief   ...
- * @details serial_driver must be set before using console
- */
-console_t console = {
-    .serial_driver = NULL,
-    .serial_config = {921600, 0, 0, 0},
-};
-
 /*===========================================================================*/
 /* Driver local functions.                                                   */
 /*===========================================================================*/
@@ -41,58 +26,46 @@ console_t console = {
  * @brief   ...
  * @details ...
  */
-bool consoleInit(console_t *console) {
-    // 
-    if (console->serial_driver == NULL) {
+DigitalPushButton::DigitalPushButton(ioportid_t io_port, uint8_t io_pin, bool idle_low) :
+              DigitalInput(io_port, io_pin, idle_low) {
+    //
+    this->press_active = false;
+    this->press_delay_end = 0;
+    this->press_count = 0;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void DigitalPushButton::refresh(void) {
+    DigitalInput::refresh();
+    this->press_active = false;
+    //
+    if ((this->press_delay_end != 0) && (this->press_delay_end < chTimeNow())) {
+        this->press_active = true;
+        this->press_delay_end = 0;
+    } else {
+        if (this->changed()) {
+            this->press_delay_end = chTimeNow() + MS2ST(this->press_delay);
+            this->press_count++;
+        } else if (this->press_delay_end == 0) {
+            this->press_count = 0;
+        }
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+bool DigitalPushButton::pressed(uint8_t n) {
+    if ((this->press_active == true) && (press_count == n)) {
+        return true;
+    } else {
         return false;
     }
-    //
-    chMtxInit(&console->mutex);
-    //
-    sdStart(console->serial_driver, &console->serial_config);
-    //
-    return true;
 }
 
-/*
- * @brief   console ...
- * @details ...
- */
-bool consoleWrite(console_t *console, const char *text) {
-    // 
-    consolePrintf(console, "%s", text);
-    // 
-    return true;
-}
-
-/*
- * @brief   console ...
- * @details ...
- */
-bool consolePrintf(console_t *console, char *fmt, ...) {
-    // 
-    uint8_t len;
-    va_list args;
-    // 
-    if (console->serial_driver == NULL) {
-        return true;
-    }
-    // 
-    chMtxLock(&console->mutex);
-    //
-    len = chsprintf(buffer, "[%ld] [%s] ", chTimeNow(), chThdSelf()->p_name);
-    sdWrite(console->serial_driver, (uint8_t *)buffer, len);
-    // 
-    va_start(args, fmt);
-    len = chvsprintf(buffer, fmt, args);
-    va_end(args);
-    // 
-    sdWrite(console->serial_driver, (uint8_t *)buffer, len);
-    //
-    chMtxUnlock();
-    // 
-    return true;
-}
-
-#endif /* ITHACA_USE_CONSOLE */
+#endif /* ITHACA_USE_DIGITAL_PUSH_BUTTON */
 

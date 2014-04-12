@@ -105,7 +105,7 @@ void Widget::updateData(void) {
  * @brief   ...
  * @details ...
  */
-bool Widget::processEvent(input_event_t event) {
+bool Widget::processEvent(InputEvent *event) {
     //
     if (this->process_event(event) == true) {
         return true;
@@ -186,7 +186,7 @@ void Widget::update_data(void) {
  * @brief   ...
  * @details ...
  */
-bool Widget::process_event(input_event_t event) {
+bool Widget::process_event(InputEvent *event) {
     (void)event;
     return false;
 }
@@ -362,6 +362,13 @@ uint8_t Widget::drawChar(uint16_t col, uint16_t row, Font *font, char c,
     }
     return w;
 }
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void Widget::addAction(InputEvent *event) {
+};
 
 #endif /* ITHACA_USE_WIDGET */
 
