@@ -133,7 +133,7 @@ void QLcdST7735::sendCommand(const uint8_t seq[]) {
 };
 
 //
-WORKING_AREA(QLcdST7735::_flush_wa, 256);
+WORKING_AREA(QLcdST7735::_flush_wa, 512);
 
 /*
  * @brief   ...
@@ -356,7 +356,7 @@ void QLcdST7735::init(void) {
     //
     chBSemInit(&this->_flush_semaphore, false);
     chThdCreateStatic(QLcdST7735::_flush_wa, sizeof(QLcdST7735::_flush_wa),
-                      NORMALPRIO - 16, QLcdST7735::flushThread, this);
+                      chThdSelf()->p_prio, QLcdST7735::flushThread, this);
     //
     consoleDebug("QLcdST7735::init()\r\n");
 }
@@ -441,12 +441,12 @@ void QLcdST7735::flushBuffer(void) {
                 idx++;
             }
             tmStopMeasurement(&flush_time);
-            consoleDebug("flushBuffer() prepare took %d us\r\n", RTT2US(flush_time.last));
+            consoleDevel("flushBuffer() prepare took %d us\r\n", RTT2US(flush_time.last));
             //
             tmStartMeasurement(&flush_time);
             spiSend(this->_spi_drv, this->_flush_buffer_size * 2, this->_flush_buffer);
             tmStopMeasurement(&flush_time);
-            consoleDebug("flushBuffer() spiSend took %d ms\r\n", RTT2MS(flush_time.last));
+            consoleDevel("flushBuffer() spiSend took %d ms\r\n", RTT2MS(flush_time.last));
         }
         // release spi
         this->releaseCS();

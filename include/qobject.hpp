@@ -188,7 +188,7 @@ class QLcdST7735: public QLcd {
         void sendCommand(const uint8_t seq[]);
         // flushing thread
         BinarySemaphore _flush_semaphore;
-        static WORKING_AREA(_flush_wa, 256);
+        static WORKING_AREA(_flush_wa, 512);
         static msg_t flushThread(void *arg);
     public:
         QLcdST7735(SPIDriver *spi_drv, SPIConfig *spi_cfg,
