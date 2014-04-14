@@ -41,4 +41,5 @@ ITHACACPPSRC += $(ITHACALIB)/misc/input_event.cpp \
                 $(ITHACALIB)/src/widget/ping_pong_ball.cpp \
                 $(ITHACALIB)/src/misc/digital_input.cpp \
                 $(ITHACALIB)/src/misc/digital_push_button.cpp \
-                $(ITHACALIB)/src/qobject.cpp
+                $(ITHACALIB)/src/qobject.cpp \
+                $(ITHACALIB)/src/radio.cpp
