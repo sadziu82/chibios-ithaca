@@ -15,8 +15,9 @@
 /*===========================================================================*/
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Color Lookup Table for RGB565.
+ * @details This table is used to translate colors from 4bit notation
+            into RGB565.
  */
 const QCore::Color565 QCore::Color565LookupTable[] = {
     QCore::Color565::Black,
@@ -27,7 +28,7 @@ const QCore::Color565 QCore::Color565LookupTable[] = {
 };
 
 /*
- * @brief   ...
+ * @brief   Statup sequence for LCD with ST7735 controller.
  */
 const uint8_t QLcdST7735::_init_sequence[] = {
     static_cast<uint8_t>(QLcdST7735::Register::SwReset), 0, 50,
@@ -59,7 +60,7 @@ const uint8_t QLcdST7735::_init_sequence[] = {
 };
 
 /*
- * @brief   ...
+ * @brief   Set rotation sequence for LCD with ST7735 controller.
  */
 const uint8_t QLcdST7735::_rotation_sequence[] = {
     static_cast<uint8_t>(QLcdST7735::Register::MadCtl), 1, 0x40, 0,
@@ -67,7 +68,7 @@ const uint8_t QLcdST7735::_rotation_sequence[] = {
 };
 
 /*
- * @brief   ...
+ * @brief   Set viewport sequence for LCD with ST7735 controller.
  */
 const uint8_t QLcdST7735::_viewport_sequence[] = {
     static_cast<uint8_t>(QLcdST7735::Register::RaSet), 4, 0x00, 0x00, 0x00, 0x9F, 0,
@@ -81,8 +82,7 @@ const uint8_t QLcdST7735::_viewport_sequence[] = {
 /*===========================================================================*/
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Acquire SPI bus and assert ChipSelect signal for ST7735 controller.
  */
 void QLcdST7735::assertCS(void) {
     spiAcquireBus(this->_spi_drv);
@@ -90,8 +90,7 @@ void QLcdST7735::assertCS(void) {
 };
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Release ChipSelect signal from ST7735 controller and release SPI bus.
  */
 void QLcdST7735::releaseCS(void) {
     palSetPad(this->_cs_port, this->_cs_pin);
@@ -99,8 +98,8 @@ void QLcdST7735::releaseCS(void) {
 };
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Send commands sequence to ST7735 controller.
+ * @param[in] seq   pointer to commands sequence
  */
 void QLcdST7735::sendCommand(const uint8_t seq[]) {
     //
@@ -132,12 +131,16 @@ void QLcdST7735::sendCommand(const uint8_t seq[]) {
     } while (seq[i] != 0);
 };
 
-//
+/*
+ * @brief   Working Area for QLcdST7735::flushThread thread()
+ */
 WORKING_AREA(QLcdST7735::_flush_wa, 512);
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   This thread will send framebuffer content to LCD
+ * @details This is a static method. It will call @flushBuffer() method
+            on object from parameter in a separate thread.
+ * @param[in] arg   pointer to the QLcdST7735 object
  */
 msg_t QLcdST7735::flushThread(void *arg) {
     //
@@ -156,8 +159,8 @@ msg_t QLcdST7735::flushThread(void *arg) {
 /*===========================================================================*/
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Constructor for QEvent class.
+ * @param[in] type  QEvent type
  */
 QEvent::QEvent(Type type) {
     //
@@ -168,8 +171,7 @@ QEvent::QEvent(Type type) {
 }
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Destructor for QEvent class.
  */
 QEvent::~QEvent() {
     //
@@ -177,8 +179,7 @@ QEvent::~QEvent() {
 }
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Public method to return QEvent type.
  */
 QEvent::Type QEvent::type(void) {
     //
@@ -186,8 +187,7 @@ QEvent::Type QEvent::type(void) {
 }
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Public method to check if QEvent has been accepted already.
  */
 bool QEvent::isAccepted(void) {
     //
@@ -195,8 +195,7 @@ bool QEvent::isAccepted(void) {
 }
 
 /*
- * @brief   ...
- * @details ...
+ * @brief   Public method to allow "accepting" QEvent.
  */
 void QEvent::setAccepted(bool accepted) {
     //
