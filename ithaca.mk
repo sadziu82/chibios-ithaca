@@ -14,15 +14,15 @@ ITHACASRC += $(ITHACALIB)/src/misc/device_id.c \
              $(ITHACALIB)/src/misc/ladder.c \
              $(ITHACALIB)/src/misc/chsprintf.c \
              $(ITHACALIB)/src/misc/imu.c \
+             $(ITHACALIB)/src/ithaca.c
+             #$(ITHACALIB)/src/misc/button.c \
+             #$(ITHACALIB)/src/misc/keypad44.c \
              $(ITHACALIB)/src/radio.c \
              $(ITHACALIB)/src/radio/ppm.c \
              $(ITHACALIB)/src/radio/rfm12b.c \
              $(ITHACALIB)/src/radio/rfm22b.c \
              $(ITHACALIB)/src/radio/mesh.c \
              $(ITHACALIB)/src/radio/rc.c \
-             $(ITHACALIB)/src/ithaca.c
-             #$(ITHACALIB)/src/misc/button.c \
-             #$(ITHACALIB)/src/misc/keypad44.c \
 
 ITHACACPPSRC += $(ITHACALIB)/misc/input_event.cpp \
                 $(ITHACALIB)/misc/input_event_queue.cpp \

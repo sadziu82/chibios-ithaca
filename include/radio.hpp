@@ -82,11 +82,17 @@ class RadioPacket {
         // length field
         uint8_t _payload_length;
         uint8_t *_payload;
+        uint8_t _payload_trash;
     public:
         RadioPacket(Type type, uint8_t group_id);
         RadioPacket(uint8_t *raw_data);
+        Type type(void) { return this->_type; };
+        uint8_t groupId(void) { return this->_group_id; };
+        uint8_t payloadLength(void) { return this->_payload_length; };
+        void setPayloadLength(uint8_t length);
         void getRawData(uint8_t *raw_data);
         void setRawData(uint8_t *raw_data);
+        uint8_t &operator[](uint8_t);
 };
 
 /*
@@ -97,7 +103,7 @@ class Radio {
     protected:
     public:
         Radio(void);
-        virtual init(void);
+        virtual void init(void);
         virtual void sendPacket(RadioPacket *packet, systime_t tmout);
         virtual RadioPacket *recvPacket(systime_t tmout);
 };
@@ -112,7 +118,7 @@ class RadioRFM12B: public Radio {
         ithaca_lock_t _busy;
     public:
         RadioRFM12B(void);
-        virtual init(void);
+        virtual void init(void);
         virtual void sendPacket(RadioPacket *packet, systime_t tmout);
         virtual RadioPacket *recvPacket(systime_t tmout);
 };

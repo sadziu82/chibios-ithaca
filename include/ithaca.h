@@ -45,7 +45,7 @@ typedef struct {
 #include <sensors.h>
 #include <misc/imu.h>
 
-#include <radio.h>
+//#include <radio.h>
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
