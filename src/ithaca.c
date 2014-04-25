@@ -40,9 +40,6 @@ inline bool ithacaLock(ithaca_lock_t *lock) {
         locked = true;
     }
     chSysUnlock();
-    if (locked == false) {
-        consoleDebug("%s lock failed\r\n", lock->name);
-    }
     return locked;
 }
 
@@ -63,9 +60,6 @@ inline bool ithacaLockTimeout(ithaca_lock_t *lock, systime_t tm) {
         }
         chSysUnlock();
         chThdYield();
-    }
-    if (locked == false) {
-        consoleDebug("%s lock wait timeout failed\r\n", lock->name);
     }
     return locked;
 }
@@ -133,6 +127,20 @@ char *asprintf(char *buffer, char *fmt, ...) {
     va_end(args);
     buffer[len] = '\0';
     return buffer;
+}
+
+/*
+ * @brief   
+ */
+uint32_t ithacaCRC32(uint8_t message[], uint8_t len) {
+    uint32_t crc = 0;
+    uint8_t idx;
+    //
+    for (idx = 0; idx < len; idx++) {
+        crc += (message[idx] << (idx % 24));
+    }
+    //
+    return crc;
 }
 
 #endif /* ITHACA_USE_LIB */

@@ -26,7 +26,7 @@ char buffer[CONSOLE_BUFFER_SIZE];
  */
 console_t console = {
     .serial_driver = NULL,
-    .serial_config = {921600, 0, 0, 0},
+    .serial_config = {115200, 0, 0, 0},
 };
 
 /*===========================================================================*/

@@ -82,6 +82,8 @@ bool ithacaLockISR(ithaca_lock_t *lock);
 void ithacaUnlockISR(ithaca_lock_t *lock);
 //
 char *asprintf(char *buffer, char *fmt, ...);
+//
+uint32_t ithacaCRC32(uint8_t message[], uint8_t len);
 
 //
 extern EXTConfig ext1_cfg;
