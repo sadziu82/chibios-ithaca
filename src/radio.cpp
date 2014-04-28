@@ -52,7 +52,7 @@ uint16_t RadioRFM12B::_xfer(const uint16_t cmd) {
 /*
  * @brief   Write one byte data to RFM12B register.
  */
-inline 
+inline
 void RadioRFM12B::_write(Register reg, const uint16_t data) {
     RadioRFM12B::_xfer(static_cast<uint16_t>(reg) | data);
 }
@@ -263,6 +263,290 @@ uint8_t &RadioPacket::operator[](uint8_t idx) {
  * @brief   ...
  * @details ...
  */
+RCPacket::RCPacket(uint8_t length) {
+    this->setRawDataLength(length + static_cast<uint8_t>(RCData::DataLength));
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+bool RCPacket::reqFlag(ReqFlag f) {
+    if (this->_raw_data == NULL) {
+        return false;
+    }
+    switch (f) {
+        case ReqFlag::Abort:
+            return (this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] & 0x80) != 0;
+        case ReqFlag::Arm:
+            return (this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] & 0x40) != 0;
+        case ReqFlag::ReturnHome:
+            return (this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] & 0x20) != 0;
+    }
+    return false;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void RCPacket::setReqFlag(ReqFlag f) {
+    if (this->_raw_data == NULL) {
+        return;
+    }
+    switch (f) {
+        case ReqFlag::Abort:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] |= 0x80;
+        case ReqFlag::Arm:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] |= 0x40;
+        case ReqFlag::ReturnHome:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] |= 0x20;
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void RCPacket::clearReqFlag(ReqFlag f) {
+    if (this->_raw_data == NULL) {
+        return;
+    }
+    switch (f) {
+        case ReqFlag::Abort:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] &= ~0x80;
+        case ReqFlag::Arm:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] &= ~0x40;
+        case ReqFlag::ReturnHome:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] &= ~0x20;
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+bool RCPacket::stateFlag(StateFlag f) {
+    if (this->_raw_data == NULL) {
+        return false;
+    }
+    switch (f) {
+        case StateFlag::LowBattery:
+            return (this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] & 0x80) != 0;
+        case StateFlag::Armed:
+            return (this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] & 0x40) != 0;
+        case StateFlag::ReturnHome:
+            return (this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] & 0x20) != 0;
+        case StateFlag::SensorsOK:
+            return (this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] & 0x02) != 0;
+        case StateFlag::GpsLock:
+            return (this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] & 0x01) != 0;
+    }
+    return false;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void RCPacket::setStateFlag(StateFlag f) {
+    if (this->_raw_data == NULL) {
+        return;
+    }
+    switch (f) {
+        case StateFlag::LowBattery:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] |= 0x80;
+        case StateFlag::Armed:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] |= 0x40;
+        case StateFlag::ReturnHome:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] |= 0x20;
+        case StateFlag::SensorsOK:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] |= 0x02;
+        case StateFlag::GpsLock:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] |= 0x01;
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void RCPacket::clearStateFlag(StateFlag f) {
+    if (this->_raw_data == NULL) {
+        return;
+    }
+    switch (f) {
+        case StateFlag::LowBattery:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] &= ~0x80;
+        case StateFlag::Armed:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] &= ~0x40;
+        case StateFlag::ReturnHome:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] &= ~0x20;
+        case StateFlag::SensorsOK:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] &= ~0x02;
+        case StateFlag::GpsLock:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)] &= ~0x01;
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+RCPacket::FlightMode RCPacket::flightMode(void) {
+    if (this->_raw_data == NULL) {
+        return FlightMode::EasyFly;
+    }
+    uint8_t mode = static_cast<uint8_t>(this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength)]);
+    mode &= static_cast<uint8_t>(RCData::FlightModeMask);
+    return static_cast<FlightMode>(mode);
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void RCPacket::setFlightMode(FlightMode fm) {
+    if (this->_raw_data == NULL) {
+        return;
+    }
+    //
+    uint8_t control = static_cast<uint8_t>(this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::ControlHeaderOffset)]);
+    // clear flymode bits and write new one
+    control &= static_cast<uint8_t>(RCData::FlightModeMask);
+    control |= static_cast<uint8_t>(fm);
+    // store new control in raw data
+    this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::ControlHeaderOffset)] = control;
+
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+uint8_t RCPacket::batteryVoltage(void) {
+    if (this->_raw_data == NULL) {
+        return 0;
+    }
+    //
+    return this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::ControlHeaderOffset) + 1];
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void RCPacket::setBatteryVoltage(uint8_t v) {
+    if (this->_raw_data == NULL) {
+        return;
+    }
+    //
+    this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::ControlHeaderOffset) + 1] = v;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+uint8_t RCPacket::stickPosition(Stick s) {
+    if (this->_raw_data == NULL) {
+        return 50;
+    }
+    //
+    switch (s) {
+        case Stick::Roll:
+            return this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::RollStickDataOffset)];
+            break;
+        case Stick::Pitch:
+            return this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::PitchStickDataOffset)];
+            break;
+        case Stick::Yaw:
+            return this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::YawStickDataOffset)];
+            break;
+        case Stick::Throttle:
+            return this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::ThrottleStickDataOffset)];
+            break;
+    }
+    return 50;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void RCPacket::setStickPosition(Stick s, uint8_t p) {
+    if (this->_raw_data == NULL) {
+        return;
+    }
+    //
+    switch (s) {
+        case Stick::Roll:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::RollStickDataOffset)] = p;
+            break;
+        case Stick::Pitch:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::PitchStickDataOffset)] = p;
+            break;
+        case Stick::Yaw:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::YawStickDataOffset)] = p;
+            break;
+        case Stick::Throttle:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::ThrottleStickDataOffset)] = p;
+            break;
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+int16_t RCPacket::orientation(Axis a) {
+    if (this->_raw_data == NULL) {
+        return 0;
+    }
+    //
+    int16_t data = 0;
+    //
+    switch (a) {
+        case Axis::Roll:
+            data = static_cast<int8_t>(this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::RollAxisDataOffset)]);
+            break;
+        case Axis::Pitch:
+            data = static_cast<int8_t>(this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::PitchAxisDataOffset)]);
+            break;
+        case Axis::Yaw:
+            data = static_cast<int16_t>((this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::YawAxisDataOffset)] << 8) + this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::YawAxisDataOffset) + 1]);
+            break;
+    }
+    return data;
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
+void RCPacket::setOrientation(Axis a, int16_t o) {
+    if (this->_raw_data == NULL) {
+        return;
+    }
+    //
+    switch (a) {
+        case Axis::Roll:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::RollAxisDataOffset)] = o;
+            break;
+        case Axis::Pitch:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::PitchAxisDataOffset)] = o;
+            break;
+        case Axis::Yaw:
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::PitchAxisDataOffset)] = (static_cast<uint16_t>(o) >> 8) & 0xFF;
+            this->_raw_data[static_cast<uint8_t>(RawData::HeadersLength) + static_cast<uint8_t>(RCData::PitchAxisDataOffset) + 1] = static_cast<uint16_t>(o) & 0xFF;
+            break;
+    }
+}
+
+/*
+ * @brief   ...
+ * @details ...
+ */
 Radio::Radio(void) {
 }
 
@@ -279,6 +563,8 @@ bool Radio::init(void) {
  * @details ...
  */
 bool Radio::send(RadioPacket *packet, systime_t tmout) {
+    (void)packet;
+    (void)tmout;
     return false;
 }
 
@@ -287,6 +573,8 @@ bool Radio::send(RadioPacket *packet, systime_t tmout) {
  * @details ...
  */
 bool Radio::recv(RadioPacket *packet, systime_t tmout) {
+    (void)packet;
+    (void)tmout;
     return false;
 }
 
@@ -519,7 +807,8 @@ bool RadioRFM12B::send(RadioPacket *packet, systime_t tmout) {
  */
 bool RadioRFM12B::recv(RadioPacket *packet, systime_t tmout) {
     //
-    systime_t timeout = chTimeNow() + MS2ST(tmout);
+    systime_t timeout = chTimeNow() + MS2ST(tmout),
+              sem_timeout = 0;
     //
     consoleDebug("RadioRFM12B::recv() start\r\n");
     while (ithacaLock(&this->_busy) == false) {
@@ -543,8 +832,12 @@ bool RadioRFM12B::recv(RadioPacket *packet, systime_t tmout) {
     this->_write(Register::FifoResetMode, static_cast<uint16_t>(FifoReset::Set));
     // start recving
     while (buffer_len != idx) {
+        sem_timeout = timeout - chTimeNow();
+        if (sem_timeout <= 0) {
+            break;
+        }
         // wait for signal from interrupt
-        if (chSemWaitTimeout(&this->_radio_semaphore, MS2ST(100)) != RDY_OK) {
+        if (chSemWaitTimeout(&this->_radio_semaphore, sem_timeout) != RDY_OK) {
             consoleDebug("RadioRFM12B::recv() timeout during packet recving\r\n");
             break;
         }

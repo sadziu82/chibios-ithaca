@@ -115,6 +115,82 @@ class RadioPacket {
  * @brief   ...
  * @details ...
  */
+class RCPacket: public RadioPacket {
+    public:
+        //
+        enum class ReqFlag: uint8_t {
+            Abort,
+            Arm,
+            ReturnHome,
+        };
+        //
+        enum class StateFlag: uint8_t {
+            LowBattery,
+            Armed,
+            ReturnHome,
+            SensorsOK,
+            GpsLock,
+        };
+        //
+        enum class FlightMode: uint8_t {
+            EasyFly = 0x00,
+            EasyFlyAlt = 0x04,
+            PositionHold = 0x08,
+            Manual = 0x0C,
+            APFollowPath = 0x10,
+            AP1 = 0x14,
+            AP2 = 0x18,
+            AP4 = 0x1C,
+        };
+        //
+        enum class Stick: uint8_t {
+            Roll,
+            Pitch,
+            Yaw,
+            Throttle,
+        };
+        //
+        enum class Axis: uint8_t {
+            Roll,
+            Pitch,
+            Yaw,
+        };
+        //
+        enum class RCData: uint8_t {
+            DataLength = 0x06,
+            ControlHeaderOffset = 0x00,
+            RollStickDataOffset = 0x02,
+            PitchStickDataOffset = 0x03,
+            YawStickDataOffset = 0x04,
+            ThrottleStickDataOffset = 0x05,
+            RollAxisDataOffset = 0x02,
+            PitchAxisDataOffset = 0x03,
+            YawAxisDataOffset = 0x04,
+            FlightModeMask = 0x1C,
+        };
+    protected:
+    public:
+        RCPacket(uint8_t stream_length);
+        bool reqFlag(ReqFlag f);
+        void setReqFlag(ReqFlag f);
+        void clearReqFlag(ReqFlag f);
+        bool stateFlag(StateFlag f);
+        void setStateFlag(StateFlag f);
+        void clearStateFlag(StateFlag f);
+        FlightMode flightMode(void);
+        void setFlightMode(FlightMode fm);
+        uint8_t batteryVoltage(void);
+        void setBatteryVoltage(uint8_t v);
+        uint8_t stickPosition(Stick s);
+        void setStickPosition(Stick s, uint8_t p);
+        int16_t orientation(Axis a);
+        void setOrientation(Axis a, int16_t o);
+};
+
+/*
+ * @brief   ...
+ * @details ...
+ */
 class Radio {
     public:
         //
@@ -250,7 +326,7 @@ class RadioRFM12B: public Radio {
         // rst pin
         ioportid_t _rst_port;
         uint16_t _rst_pin;
-        // 
+        //
         uint8_t _syncword;
         uint8_t _preamble_length;
         uint8_t _postamble_length;

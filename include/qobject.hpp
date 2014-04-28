@@ -142,7 +142,7 @@ class QLcd {
         virtual inline QCoord width(void) { return this->_width; };
         virtual inline QCoord height(void) { return this->_height; };
         virtual void clear(QCore::Color c);
-        virtual void putPixel(QCoord x, QCoord y, QCore::Color c) {};
+        virtual void putPixel(QCoord x, QCoord y, QCore::Color c) { (void)x; (void)y; (void)c; };
         inline void drawHLine(QCoord xs, QCoord ys, QCoord l, QCore::Color c);
         inline void drawVLine(QCoord xs, QCoord ys, QCoord l, QCore::Color c);
         void drawCircle(QCoord x, QCoord y, QCoord r, QCore::Color c, QCore::Color fc);
