@@ -21,14 +21,14 @@ index 7a59fa7..c21741b 100644
     */
    const EXTConfig           *config;
    /* End of the mandatory fields.*/
-+#if defined(EXT_DRIVER_EXT_FIELDS)^M
-+  EXT_DRIVER_EXT_FIELDS^M
-+#endif^M
++#if defined(EXT_DRIVER_EXT_FIELDS)
++  EXT_DRIVER_EXT_FIELDS
++#endif
  };
  
  /*===========================================================================*/
 
-** define in ithacaconf.h:
+** add following #define's at the end of chconf.h:
 
 #define EXT_DRIVER_EXT_FIELDS void *user_ptr[EXT_MAX_CHANNELS];
 #define SPI_DRIVER_EXT_FIELDS void *user_ptr;
